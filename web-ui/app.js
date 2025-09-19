@@ -12,6 +12,7 @@ class RoutingUI {
         this.setupEventListeners();
         this.renderRules();
         this.renderTemplates();
+        this.startLogAutoRefresh();
     }
 
     async loadRules() {
@@ -64,6 +65,8 @@ class RoutingUI {
             this.refreshRules();
         } else if (tabName === 'settings') {
             this.loadConfigurationUI();
+        } else if (tabName === 'logs') {
+            this.loadLogs();
         }
     }
 
@@ -825,6 +828,160 @@ class RoutingUI {
         }
     }
 
+    async loadLogs() {
+        try {
+            const response = await fetch('/api/logs');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderLogs(data.messages);
+            }
+        } catch (error) {
+            console.error('Failed to load logs:', error);
+            this.showNotification('Failed to load logs', 'error');
+        }
+    }
+
+    renderLogs(messages) {
+        const incomingContainer = document.getElementById('incoming-messages');
+        const outgoingContainer = document.getElementById('outgoing-messages');
+        const incomingCount = document.getElementById('incoming-count');
+        const outgoingCount = document.getElementById('outgoing-count');
+        
+        const incomingMessages = messages.filter(m => m.type === 'incoming');
+        const outgoingMessages = messages.filter(m => m.type === 'outgoing');
+        
+        incomingCount.textContent = incomingMessages.length;
+        outgoingCount.textContent = outgoingMessages.length;
+        
+        // Render incoming messages
+        if (incomingMessages.length === 0) {
+            incomingContainer.innerHTML = `
+                <div class="no-messages">
+                    <i class="fas fa-inbox" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+                    <p style="color: #999;">No incoming messages yet...</p>
+                    <small style="color: #ccc;">Messages from OneComme will appear here</small>
+                </div>
+            `;
+        } else {
+            incomingContainer.innerHTML = incomingMessages.map(msg => this.renderIncomingMessage(msg)).join('');
+        }
+        
+        // Render outgoing messages
+        if (outgoingMessages.length === 0) {
+            outgoingContainer.innerHTML = `
+                <div class="no-messages">
+                    <i class="fas fa-paper-plane" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+                    <p style="color: #999;">No outgoing messages yet...</p>
+                    <small style="color: #ccc;">OSC messages will appear here</small>
+                </div>
+            `;
+        } else {
+            outgoingContainer.innerHTML = outgoingMessages.map(msg => this.renderOutgoingMessage(msg)).join('');
+        }
+    }
+
+    renderIncomingMessage(msg) {
+        const time = new Date(msg.timestamp).toLocaleTimeString();
+        const statusIcon = msg.processed ? '✅' : '❌';
+        const userName = msg.data.name || 'Unknown';
+        const userComment = msg.data.comment || 'No message';
+        const hasGift = msg.data.hasGift ? ' 🎁' : '';
+        
+        return `
+            <div class="log-message incoming ${msg.processed ? 'success' : 'error'}" onclick="toggleLogJson('${msg.id}')">
+                <div class="log-header">
+                    <div class="log-title">
+                        ${statusIcon}
+                        <span class="log-service ${msg.service}">${msg.service}</span>
+                        <strong>${userName}</strong>${hasGift}
+                    </div>
+                    <div class="log-time">${time}</div>
+                </div>
+                <div class="log-content">
+                    "${userComment.substring(0, 100)}${userComment.length > 100 ? '...' : ''}"
+                </div>
+                <div class="log-preview">
+                    ${JSON.stringify(msg.data, null, 2).substring(0, 200)}${JSON.stringify(msg.data, null, 2).length > 200 ? '...' : ''}
+                </div>
+                <div class="log-toggle">📄 Click to view full JSON</div>
+                <div class="log-json" id="json-${msg.id}">${JSON.stringify(msg.data, null, 2)}</div>
+            </div>
+        `;
+    }
+
+    renderOutgoingMessage(msg) {
+        const time = new Date(msg.timestamp).toLocaleTimeString();
+        const statusIcon = msg.success ? '✅' : '❌';
+        const endpointParts = msg.endpoint.split('/');
+        const endpointName = endpointParts[endpointParts.length - 1] || 'root';
+        
+        return `
+            <div class="log-message outgoing ${msg.success ? 'success' : 'error'}" onclick="toggleLogJson('${msg.id}')">
+                <div class="log-header">
+                    <div class="log-title">
+                        ${statusIcon}
+                        <strong>OSC Message</strong>
+                        ${msg.error ? `<span style="color: #f56565; font-size: 12px;">(${msg.error})</span>` : ''}
+                    </div>
+                    <div class="log-time">${time}</div>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span class="log-endpoint">${msg.endpoint}</span>
+                </div>
+                <div class="log-content">
+                    Data: ${typeof msg.data === 'string' ? msg.data.substring(0, 100) : JSON.stringify(msg.data).substring(0, 100)}${msg.data.length > 100 ? '...' : ''}
+                </div>
+                <div class="log-preview">
+                    ${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data, null, 2)}
+                </div>
+                <div class="log-toggle">📄 Click to view full data</div>
+                <div class="log-json" id="json-${msg.id}">${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data, null, 2)}</div>
+            </div>
+        `;
+    }
+
+    async clearLogs() {
+        try {
+            const response = await fetch('/api/logs', {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('Logs cleared successfully', 'success');
+                this.loadLogs();
+            } else {
+                throw new Error(result.error || 'Failed to clear logs');
+            }
+        } catch (error) {
+            console.error('Failed to clear logs:', error);
+            this.showNotification('Failed to clear logs: ' + error.message, 'error');
+        }
+    }
+
+    startLogAutoRefresh() {
+        // Auto-refresh logs every 2 seconds when on logs tab
+        if (this.logRefreshInterval) {
+            clearInterval(this.logRefreshInterval);
+        }
+        
+        this.logRefreshInterval = setInterval(() => {
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab && activeTab.id === 'logs-tab') {
+                this.loadLogs();
+            }
+        }, 2000);
+    }
+
+    stopLogAutoRefresh() {
+        if (this.logRefreshInterval) {
+            clearInterval(this.logRefreshInterval);
+            this.logRefreshInterval = null;
+        }
+    }
+
     showNotification(message, type = 'info') {
         // Create notification element
         const notification = document.createElement('div');
@@ -927,6 +1084,27 @@ function exportConfiguration() {
 
 function importConfiguration(fileInput) {
     app.importConfiguration(fileInput);
+}
+
+function refreshLogs() {
+    app.loadLogs();
+}
+
+function clearLogs() {
+    app.clearLogs();
+}
+
+function toggleLogJson(messageId) {
+    const jsonElement = document.getElementById(`json-${messageId}`);
+    const toggleElement = jsonElement.previousElementSibling;
+    
+    if (jsonElement.style.display === 'none' || !jsonElement.style.display) {
+        jsonElement.style.display = 'block';
+        toggleElement.textContent = '📄 Click to hide JSON';
+    } else {
+        jsonElement.style.display = 'none';
+        toggleElement.textContent = '📄 Click to view full JSON';
+    }
 }
 
 // Initialize the app when the page loads

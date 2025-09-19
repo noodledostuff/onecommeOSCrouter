@@ -12,7 +12,63 @@ const { BilibiliComment, BilibiliGift } = require('./impl/bilibili/index');
 const endpoint = "127.0.0.1";
 const defaultPort = 19100;
 const webUIPort = 19101; // Web UI will run on this port
-const defaultPostApi = "/onecomme/common";
+
+// Message logging system
+class MessageLogger {
+    constructor(maxMessages = 100) {
+        this.maxMessages = maxMessages;
+        this.messages = [];
+    }
+
+    logIncoming(service, data, processed = true) {
+        const logEntry = {
+            id: Date.now() + Math.random(),
+            type: 'incoming',
+            timestamp: new Date().toISOString(),
+            service: service,
+            data: data,
+            processed: processed
+        };
+        
+        this.messages.unshift(logEntry);
+        if (this.messages.length > this.maxMessages) {
+            this.messages = this.messages.slice(0, this.maxMessages);
+        }
+        
+        console.info(`📥 Incoming [${service}]: ${data.name || 'Unknown'} - ${data.comment || 'No message'}`);
+        return logEntry;
+    }
+
+    logOutgoing(endpoint, data, success = true, error = null) {
+        const logEntry = {
+            id: Date.now() + Math.random(),
+            type: 'outgoing',
+            timestamp: new Date().toISOString(),
+            endpoint: endpoint,
+            data: data,
+            success: success,
+            error: error
+        };
+        
+        this.messages.unshift(logEntry);
+        if (this.messages.length > this.maxMessages) {
+            this.messages = this.messages.slice(0, this.maxMessages);
+        }
+        
+        const status = success ? '✅' : '❌';
+        const preview = typeof data === 'string' ? data.substring(0, 50) : JSON.stringify(data).substring(0, 50);
+        console.info(`📤 Outgoing ${status} [${endpoint}]: ${preview}...`);
+        return logEntry;
+    }
+
+    getMessages(limit = null) {
+        return limit ? this.messages.slice(0, limit) : this.messages;
+    }
+
+    clearMessages() {
+        this.messages = [];
+    }
+}
 
 // Configuration management
 class ConfigManager {
@@ -304,9 +360,10 @@ class EnhancedMessageConverter {
 
 // Web UI server
 class WebUIServer {
-    constructor(ruleEngine, configManager) {
+    constructor(ruleEngine, configManager, messageLogger) {
         this.ruleEngine = ruleEngine;
         this.configManager = configManager;
+        this.messageLogger = messageLogger;
         this.app = express();
         this.server = null;
         this.setupMiddleware();
@@ -456,6 +513,25 @@ class WebUIServer {
                     error: error.message 
                 });
             }
+        });
+
+        // Message logging endpoints
+        this.app.get('/api/logs', (req, res) => {
+            const limit = parseInt(req.query.limit) || null;
+            const messages = this.messageLogger.getMessages(limit);
+            res.json({ 
+                success: true, 
+                messages: messages,
+                total: messages.length
+            });
+        });
+
+        this.app.delete('/api/logs', (req, res) => {
+            this.messageLogger.clearMessages();
+            res.json({ 
+                success: true, 
+                message: 'Message logs cleared'
+            });
         });
 
         // Serve main UI
@@ -631,9 +707,10 @@ class Domain {
         
         // Enhanced components
         this.configManager = new ConfigManager();
+        this.messageLogger = new MessageLogger(100);
         this.converter = new EnhancedMessageConverter();
         this.ruleEngine = this.converter.ruleEngine;
-        this.webUI = new WebUIServer(this.ruleEngine, this.configManager);
+        this.webUI = new WebUIServer(this.ruleEngine, this.configManager, this.messageLogger);
         this.client = null;
     }
 
@@ -691,8 +768,14 @@ class Domain {
     processComments(comments) {
         comments.forEach((cm) => {
             try {
+                // Log incoming message
+                this.messageLogger.logIncoming(cm.service, cm.data, true);
+                
                 const subject = this.converter.convert(cm);
-                if (subject === undefined) return;
+                if (subject === undefined) {
+                    this.messageLogger.logIncoming(cm.service, cm.data, false);
+                    return;
+                }
 
                 // Apply routing rules
                 const ruleResult = this.ruleEngine.processMessage(subject);
@@ -714,6 +797,7 @@ class Domain {
 
             } catch (error) {
                 console.error(`Failed to process comment from ${cm.service}: ${error.message}`);
+                this.messageLogger.logIncoming(cm.service, cm.data, false);
             }
         });
     }
@@ -740,33 +824,39 @@ class Domain {
         } catch (oscError) {
             console.error(`Failed to send OSC message: ${oscError.message}`);
         }
-        
-        // Send common API message
-        try {
-            const post = subject.asPost();
-            if (post !== undefined) {
-                const postJson = JSON.stringify(post);
-                const postUtf8 = Buffer.from(postJson, "utf-8");
-                this.send(defaultPostApi, postUtf8);
-            }
-        } catch (commonError) {
-            console.error(`Failed to send common API message: ${commonError.message}`);
-        }
     }
 
     send(oscEndpoint, data) {
-        // Ensure we have the latest OSC client configuration
-        if (!this.client || this.shouldReconnectClient()) {
-            this.initOscClient();
-        }
-        
-        const oscPort = this.configManager.getOscPort();
-        const oscHost = this.configManager.getOscHost();
-        
-        console.info(`Sending message to ${oscHost}:${oscPort}${oscEndpoint}: ${data.toString().substring(0, 100)}...`);
-        const message = new Message(oscEndpoint, data);
-        if (this.client) {
-            this.client.send(message);
+        try {
+            // Ensure we have the latest OSC client configuration
+            if (!this.client || this.shouldReconnectClient()) {
+                this.initOscClient();
+            }
+            
+            const oscPort = this.configManager.getOscPort();
+            const oscHost = this.configManager.getOscHost();
+            
+            console.info(`Sending message to ${oscHost}:${oscPort}${oscEndpoint}: ${data.toString().substring(0, 100)}...`);
+            const message = new Message(oscEndpoint, data);
+            
+            if (this.client) {
+                this.client.send(message);
+                
+                // Log successful outgoing message
+                const logData = data.toString().length > 200 ? 
+                    data.toString().substring(0, 200) + '...' : 
+                    data.toString();
+                this.messageLogger.logOutgoing(oscEndpoint, logData, true);
+            } else {
+                throw new Error('OSC client not available');
+            }
+        } catch (error) {
+            // Log failed outgoing message
+            const logData = data.toString().length > 200 ? 
+                data.toString().substring(0, 200) + '...' : 
+                data.toString();
+            this.messageLogger.logOutgoing(oscEndpoint, logData, false, error.message);
+            throw error;
         }
     }
     
