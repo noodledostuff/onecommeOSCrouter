@@ -1,0 +1,54 @@
+[
+  {
+    "id": "sample-high-value-gifts",
+    "name": "High Value Gifts",
+    "description": "Route gifts worth more than $10 to special endpoint",
+    "enabled": true,
+    "conditions": [
+      {
+        "field": "price",
+        "operator": "greater_than",
+        "value": 10,
+        "dataType": "number"
+      },
+      {
+        "field": "hasGift",
+        "operator": "equals",
+        "value": true,
+        "dataType": "boolean"
+      }
+    ],
+    "conditionLogic": "AND",
+    "actions": [
+      {
+        "type": "route_to_endpoint",
+        "endpoint": "/onecomme/high-value-gifts",
+        "fields": ["name", "comment", "price", "giftName"]
+      }
+    ],
+    "blockDefault": false
+  },
+  {
+    "id": "sample-bilibili-only",
+    "name": "Bilibili Messages Only",
+    "description": "Route only Bilibili messages to custom endpoint",
+    "enabled": true,
+    "conditions": [
+      {
+        "field": "type",
+        "operator": "contains",
+        "value": "bilibili",
+        "dataType": "string"
+      }
+    ],
+    "conditionLogic": "AND",
+    "actions": [
+      {
+        "type": "route_to_endpoint",
+        "endpoint": "/onecomme/bilibili-only",
+        "fields": ["name", "comment", "userLevel", "guardLevel", "isVip"]
+      }
+    ],
+    "blockDefault": false
+  }
+]

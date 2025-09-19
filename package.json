@@ -1,0 +1,33 @@
+{
+  "name": "onecomme-osc-router",
+  "version": "2.0.0",
+  "description": "OneComme OSC Router - Enhanced plugin with conditional routing and web UI for live streaming applications",
+  "main": "enhanced-plugin.js",
+  "scripts": {
+    "start": "node enhanced-plugin.js",
+    "test": "node test-enhanced-plugin.js",
+    "dev": "node test-enhanced-plugin.js",
+    "legacy": "node plugin.js"
+  },
+  "keywords": [
+    "onecomme",
+    "osc",
+    "router",
+    "plugin",
+    "bilibili",
+    "youtube",
+    "niconico",
+    "streaming",
+    "routing",
+    "conditional",
+    "web-ui",
+    "わんコメ"
+  ],
+  "author": "Virtual Cast, Inc.",
+  "type": "commonjs",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.0",
+    "node-osc": "^9.1.1"
+  }
+}

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneComme OSC - Conditional Routing</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            border-radius: 5px;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px 10px 0 0;
+            margin-bottom: 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        .tab:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            background: #f7fafc;
+            color: #667eea;
+        }
+
+        .tab:hover {
+            background: #f7fafc;
+        }
+
+        .content {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .rules-list {
+            margin-top: 20px;
+        }
+
+        .rule-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .rule-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .rule-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+        }
+
+        .rule-toggle {
+            margin: 0 10px;
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .conditions-builder {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .condition-group {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .condition-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .condition-row select,
+        .condition-row input {
+            flex: 1;
+        }
+
+        .logic-selector {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .logic-selector label {
+            margin: 0 10px;
+            cursor: pointer;
+        }
+
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .template-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .template-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .template-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .template-description {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+        }
+
+        .close:hover {
+            color: #2d3748;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .field-selector {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .field-checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .field-checkbox input {
+            margin-right: 8px;
+        }
+
+        .rule-conditions {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .condition-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header animate__animated animate__fadeInDown">
+            <h1>
+                <i class="fas fa-route"></i>
+                OneComme OSC - Conditional Routing
+            </h1>
+            <div class="status">
+                <i class="fas fa-circle text-green-500"></i>
+                <span id="status">Configuration UI Active - Rules Engine Ready</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('rules')">
+                <i class="fas fa-list"></i> Routing Rules
+            </div>
+            <div class="tab" onclick="switchTab('create')">
+                <i class="fas fa-plus"></i> Create Rule
+            </div>
+            <div class="tab" onclick="switchTab('templates')">
+                <i class="fas fa-templates"></i> Templates
+            </div>
+            <div class="tab" onclick="switchTab('test')">
+                <i class="fas fa-vial"></i> Test Rules
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Rules Tab -->
+            <div id="rules-tab" class="tab-content active">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Active Routing Rules</h2>
+                    <button class="btn btn-primary" onclick="refreshRules()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div id="rules-container" class="rules-list">
+                    <!-- Rules will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Create Rule Tab -->
+            <div id="create-tab" class="tab-content">
+                <h2>Create New Routing Rule</h2>
+                <form id="rule-form">
+                    <div class="form-group">
+                        <label for="rule-name">Rule Name</label>
+                        <input type="text" id="rule-name" class="form-control" placeholder="e.g., High Value Gifts" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rule-description">Description</label>
+                        <textarea id="rule-description" class="form-control" rows="3" placeholder="Describe what this rule does"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Conditions</label>
+                        <div id="conditions-container" class="conditions-builder">
+                            <div class="condition-group">
+                                <div class="condition-row">
+                                    <select class="form-control condition-field">
+                                        <option value="">Select Field</option>
+                                        <option value="type">Message Type</option>
+                                        <option value="hasGift">Has Gift</option>
+                                        <option value="price">Gift Price</option>
+                                        <option value="name">User Name</option>
+                                        <option value="comment">Message Text</option>
+                                        <option value="userLevel">User Level (Bilibili)</option>
+                                        <option value="guardLevel">Guard Level (Bilibili)</option>
+                                        <option value="isVip">VIP Status (Bilibili)</option>
+                                        <option value="isMember">Member Status (YouTube)</option>
+                                        <option value="isModerator">Moderator Status</option>
+                                        <option value="giftName">Gift Name</option>
+                                    </select>
+                                    <select class="form-control condition-operator">
+                                        <option value="equals">Equals</option>
+                                        <option value="not_equals">Not Equals</option>
+                                        <option value="greater_than">Greater Than</option>
+                                        <option value="greater_than_or_equal">Greater Than or Equal</option>
+                                        <option value="less_than">Less Than</option>
+                                        <option value="less_than_or_equal">Less Than or Equal</option>
+                                        <option value="contains">Contains</option>
+                                        <option value="not_contains">Does Not Contain</option>
+                                        <option value="starts_with">Starts With</option>
+                                        <option value="ends_with">Ends With</option>
+                                        <option value="regex">Regular Expression</option>
+                                    </select>
+                                    <input type="text" class="form-control condition-value" placeholder="Value">
+                                    <select class="form-control condition-type">
+                                        <option value="string">Text</option>
+                                        <option value="number">Number</option>
+                                        <option value="boolean">True/False</option>
+                                    </select>
+                                    <button type="button" class="btn btn-danger" onclick="removeCondition(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="addCondition()">
+                                <i class="fas fa-plus"></i> Add Condition
+                            </button>
+                        </div>
+
+                        <div class="logic-selector">
+                            <label>
+                                <input type="radio" name="condition-logic" value="AND" checked> 
+                                <strong>AND</strong> (All conditions must be true)
+                            </label>
+                            <label>
+                                <input type="radio" name="condition-logic" value="OR"> 
+                                <strong>OR</strong> (Any condition can be true)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="action-endpoint">Custom OSC Endpoint</label>
+                        <input type="text" id="action-endpoint" class="form-control" placeholder="/onecomme/custom-endpoint" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fields to Include in OSC Message</label>
+                        <div id="field-selector" class="field-selector">
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-name" value="name" checked>
+                                <label for="field-name">User Name</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-comment" value="comment" checked>
+                                <label for="field-comment">Message Text</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-timestamp" value="timestamp">
+                                <label for="field-timestamp">Timestamp</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-price" value="price">
+                                <label for="field-price">Gift Price</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-giftName" value="giftName">
+                                <label for="field-giftName">Gift Name</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-userLevel" value="userLevel">
+                                <label for="field-userLevel">User Level</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-guardLevel" value="guardLevel">
+                                <label for="field-guardLevel">Guard Level</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-profileImageUrl" value="profileImageUrl">
+                                <label for="field-profileImageUrl">Profile Image URL</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-type" value="type">
+                                <label for="field-type">Message Type</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-hasGift" value="hasGift">
+                                <label for="field-hasGift">Has Gift</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-isVip" value="isVip">
+                                <label for="field-isVip">VIP Status</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-isMember" value="isMember">
+                                <label for="field-isMember">Member Status</label>
+                            </div>
+                            <div class="field-checkbox">
+                                <input type="checkbox" id="field-isModerator" value="isModerator">
+                                <label for="field-isModerator">Moderator Status</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="block-default">
+                            <span>Block Default Routing (only send to custom endpoint)</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save Rule
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Templates Tab -->
+            <div id="templates-tab" class="tab-content">
+                <h2>Rule Templates</h2>
+                <p>Choose from pre-configured rule templates to get started quickly:</p>
+                <div id="templates-container" class="templates-grid">
+                    <!-- Templates will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Test Tab -->
+            <div id="test-tab" class="tab-content">
+                <h2>Test Your Rules</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h3>Sample Message</h3>
+                        <textarea id="test-message" class="form-control" rows="15" placeholder='Enter test message JSON here, e.g.:
+{
+  "type": "bilibili-gift",
+  "name": "TestUser",
+  "comment": "Thanks for streaming!",
+  "hasGift": true,
+  "price": 50,
+  "giftName": "辣条",
+  "userLevel": 25,
+  "guardLevel": 1,
+  "isVip": false
+}'></textarea>
+                        <button class="btn btn-primary" onclick="testRules()" style="margin-top: 10px; width: 100%;">
+                            <i class="fas fa-play"></i> Test Rules
+                        </button>
+                    </div>
+                    <div>
+                        <h3>Test Results</h3>
+                        <div id="test-results" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; min-height: 400px;">
+                            Results will appear here after testing...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Rule Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Rule</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div id="edit-modal-body">
+                <!-- Edit form will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
