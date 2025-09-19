@@ -597,8 +597,9 @@ class RoutingUI {
             const data = await response.json();
             
             if (data.success) {
-                document.getElementById('osc-host').value = data.config.oscHost || '127.0.0.1';
-                document.getElementById('osc-port').value = data.config.oscPort || 19100;
+                document.getElementById('osc-host').value = data.config.oscHost;
+                document.getElementById('osc-port').value = data.config.oscPort;
+                document.getElementById('enable-default-endpoints').checked = data.config.enableDefaultEndpoints !== false;
                 document.getElementById('current-osc-target').textContent = `${data.config.oscHost}:${data.config.oscPort}`;
             }
         } catch (error) {
@@ -739,6 +740,53 @@ class RoutingUI {
         }
     }
     
+    async saveDefaultEndpointsSetting() {
+        try {
+            const enableDefaultEndpoints = document.getElementById('enable-default-endpoints').checked;
+            
+            const response = await fetch('/api/config', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    enableDefaultEndpoints: enableDefaultEndpoints
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const status = enableDefaultEndpoints ? 'enabled' : 'disabled';
+                this.showNotification(`Default endpoints ${status} successfully!`, 'success');
+                
+                // Show status message
+                const statusDiv = document.getElementById('config-status');
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = enableDefaultEndpoints ? '#e6fffa' : '#fed7d7';
+                statusDiv.style.border = enableDefaultEndpoints ? '1px solid #38b2ac' : '1px solid #feb2b2';
+                statusDiv.style.color = enableDefaultEndpoints ? '#38b2ac' : '#e53e3e';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-${enableDefaultEndpoints ? 'check-circle' : 'exclamation-triangle'}"></i> 
+                    <strong>Default Endpoints ${enableDefaultEndpoints ? 'Enabled' : 'Disabled'}</strong><br>
+                    ${enableDefaultEndpoints 
+                        ? 'Messages will be sent to both default endpoints and custom routing rules.' 
+                        : '<strong>Warning:</strong> Only custom routing rules will send OSC messages. Default endpoints are disabled.'}
+                `;
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 8000);
+            } else {
+                throw new Error(result.error || 'Failed to save default endpoints setting');
+            }
+            
+        } catch (error) {
+            console.error('Failed to save default endpoints setting:', error);
+            this.showNotification('Failed to save setting: ' + error.message, 'error');
+        }
+    }
+    
     async exportConfiguration() {
         try {
             const [rulesResponse, configResponse] = await Promise.all([
@@ -854,20 +902,23 @@ class RoutingUI {
         incomingCount.textContent = incomingMessages.length;
         outgoingCount.textContent = outgoingMessages.length;
         
-        // Render incoming messages
+        // Preserve expanded JSON state before re-rendering
+        const expandedJsonIds = this.getExpandedJsonIds();
+        
+        // Render incoming messages (newest first - server already provides them in correct order)
         if (incomingMessages.length === 0) {
             incomingContainer.innerHTML = `
                 <div class="no-messages">
                     <i class="fas fa-inbox" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
                     <p style="color: #999;">No incoming messages yet...</p>
-                    <small style="color: #ccc;">Messages from OneComme will appear here</small>
+                    <small style="color: #ccc;">OneComme messages will appear here</small>
                 </div>
             `;
         } else {
             incomingContainer.innerHTML = incomingMessages.map(msg => this.renderIncomingMessage(msg)).join('');
         }
         
-        // Render outgoing messages
+        // Render outgoing messages (newest first - server already provides them in correct order)
         if (outgoingMessages.length === 0) {
             outgoingContainer.innerHTML = `
                 <div class="no-messages">
@@ -879,6 +930,87 @@ class RoutingUI {
         } else {
             outgoingContainer.innerHTML = outgoingMessages.map(msg => this.renderOutgoingMessage(msg)).join('');
         }
+        
+        // Restore expanded JSON state after re-rendering
+        this.restoreExpandedJsonIds(expandedJsonIds);
+    }
+
+    buildIncomingReadableContent(data, service) {
+        let hasContent = false;
+        let content = '<div class="readable-fields">';
+        
+        // Gift Information (if present)
+        if (data.hasGift) {
+            hasContent = true;
+            content += '<div class="field-group gift-group">';
+            content += '<div class="field-group-title"><i class="fas fa-gift"></i> Gift Information</div>';
+            content += '<div class="gift-info-table">';
+            content += '<div class="gift-info-row">';
+            
+            if (data.giftName) {
+                content += `<span class="gift-name-primary">${data.giftName}</span>`;
+            }
+            
+            if (data.price !== undefined) {
+                const priceColor = data.price >= 50 ? '#e74c3c' : data.price >= 10 ? '#f39c12' : '#27ae60';
+                const currency = service === 'bilibili' ? '¥' : '$';
+                content += `<span class="gift-price-primary" style="color: ${priceColor}; font-weight: bold; margin-left: 10px;">${currency}${data.price}</span>`;
+            }
+            
+            content += '</div>';
+            content += '</div>';
+            content += '</div>';
+        }
+        
+        content += '</div>';
+        
+        // Return null if no content to display
+        return hasContent ? content : null;
+    }
+    
+    formatTimestamp(timestamp) {
+        if (!timestamp || typeof timestamp !== 'object') return 'N/A';
+        
+        const { year, month, day, hour, minute, second } = timestamp;
+        if (!year || !month || !day) return 'Invalid timestamp';
+        
+        return `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')} ${hour || 0}:${(minute || 0).toString().padStart(2, '0')}:${(second || 0).toString().padStart(2, '0')}`;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    getExpandedJsonIds() {
+        // Get all JSON elements that are currently expanded
+        const expandedIds = [];
+        const jsonElements = document.querySelectorAll('.log-json');
+        
+        jsonElements.forEach(element => {
+            if (element.style.display === 'block') {
+                // Extract the message ID from the element ID (format: 'json-{messageId}')
+                const messageId = element.id.replace('json-', '');
+                expandedIds.push(messageId);
+            }
+        });
+        
+        return expandedIds;
+    }
+    
+    restoreExpandedJsonIds(expandedIds) {
+        // Restore the expanded state for JSON elements
+        expandedIds.forEach(messageId => {
+            const jsonElement = document.getElementById(`json-${messageId}`);
+            if (jsonElement) {
+                const toggleElement = jsonElement.previousElementSibling;
+                jsonElement.style.display = 'block';
+                if (toggleElement) {
+                    toggleElement.innerHTML = '<i class="fas fa-eye-slash"></i> Click to hide raw Data';
+                }
+            }
+        });
     }
 
     renderIncomingMessage(msg) {
@@ -888,26 +1020,249 @@ class RoutingUI {
         const userComment = msg.data.comment || 'No message';
         const hasGift = msg.data.hasGift ? ' 🎁' : '';
         
+        // Build member status badges for header
+        let memberBadges = [];
+        if (msg.service === 'bilibili') {
+            if (msg.data.userLevel) {
+                const levelColor = msg.data.userLevel >= 20 ? '#f39c12' : msg.data.userLevel >= 10 ? '#e74c3c' : '#95a5a6';
+                memberBadges.push(`<span class="user-badge level-badge" style="background-color: ${levelColor};">UL${msg.data.userLevel}</span>`);
+            }
+            if (msg.data.guardLevel > 0) {
+                const guardTypes = { 1: '总督', 2: '提督', 3: '舰长' };
+                memberBadges.push(`<span class="user-badge guard-badge">${guardTypes[msg.data.guardLevel] || 'Guard'}</span>`);
+            }
+            if (msg.data.isVip) {
+                memberBadges.push(`<span class="user-badge vip-badge">VIP</span>`);
+            }
+            if (msg.data.isSvip) {
+                memberBadges.push(`<span class="user-badge svip-badge">SVIP</span>`);
+            }
+        }
+        
+        if (msg.service === 'youtube') {
+            if (msg.data.isMember) {
+                memberBadges.push(`<span class="user-badge member-badge">Member</span>`);
+            }
+            if (msg.data.isModerator) {
+                memberBadges.push(`<span class="user-badge mod-badge">Moderator</span>`);
+            }
+        }
+        
+        const badgeHtml = memberBadges.length > 0 ? memberBadges.join('') : '';
+        
+        // Build human-readable display
+        const readableContent = this.buildIncomingReadableContent(msg.data, msg.service);
+        
         return `
-            <div class="log-message incoming ${msg.processed ? 'success' : 'error'}" onclick="toggleLogJson('${msg.id}')">
+            <div class="log-message incoming ${msg.processed ? 'success' : 'error'}">
                 <div class="log-header">
                     <div class="log-title">
                         ${statusIcon}
                         <span class="log-service ${msg.service}">${msg.service}</span>
+                        ${badgeHtml}
                         <strong>${userName}</strong>${hasGift}
                     </div>
                     <div class="log-time">${time}</div>
                 </div>
                 <div class="log-content">
-                    "${userComment.substring(0, 100)}${userComment.length > 100 ? '...' : ''}"
+                    "${userComment.substring(0, 150)}${userComment.length > 150 ? '...' : ''}"
                 </div>
-                <div class="log-preview">
-                    ${JSON.stringify(msg.data, null, 2).substring(0, 200)}${JSON.stringify(msg.data, null, 2).length > 200 ? '...' : ''}
+                ${readableContent ? `<div class="log-readable-content">${readableContent}</div>` : ''}
+                <div class="log-toggle" onclick="toggleLogJson('${msg.id}')">
+                    <i class="fas fa-code"></i> Click to view raw Data
                 </div>
-                <div class="log-toggle">📄 Click to view full JSON</div>
                 <div class="log-json" id="json-${msg.id}">${JSON.stringify(msg.data, null, 2)}</div>
             </div>
         `;
+    }
+
+    buildOutgoingReadableContent(data, endpoint) {
+        let content = '<div class="readable-fields">';
+        
+        // Message Content as clear table
+        content += '<div class="field-group">';
+        content += '<div class="field-group-title"><i class="fas fa-table"></i> OSC Message Fields</div>';
+        
+        if (typeof data === 'string') {
+            // OSC string data - try to parse as JSON to show the actual message fields
+            let jsonData = null;
+            let parseError = null;
+            
+            try {
+                // First attempt: direct parse
+                jsonData = JSON.parse(data);
+            } catch (e1) {
+                try {
+                    // Second attempt: trim whitespace and try again
+                    jsonData = JSON.parse(data.trim());
+                } catch (e2) {
+                    try {
+                        // Third attempt: handle potential encoding issues
+                        const cleanData = data.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+                        jsonData = JSON.parse(cleanData);
+                    } catch (e3) {
+                        parseError = e3;
+                    }
+                }
+            }
+            
+            if (jsonData && typeof jsonData === 'object') {
+                // Successfully parsed JSON
+                content += '<table class="message-data-table">';
+                
+                // Display each field that's being sent in the OSC message
+                for (const [key, value] of Object.entries(jsonData)) {
+                    let displayValue = value;
+                    let valueClass = 'data-value';
+                    
+                    // Format different types appropriately
+                    if (typeof value === 'string') {
+                        displayValue = value.length > 100 ? value.substring(0, 100) + '...' : value;
+                        displayValue = `"${this.escapeHtml(displayValue)}"`;
+                    } else if (typeof value === 'number') {
+                        displayValue = value;
+                        valueClass += ' number-value';
+                    } else if (typeof value === 'boolean') {
+                        displayValue = value ? 'true' : 'false';
+                        valueClass += value ? ' boolean-true' : ' boolean-false';
+                    } else if (value === null) {
+                        displayValue = 'null';
+                        valueClass += ' null-value';
+                    } else if (typeof value === 'object') {
+                        displayValue = JSON.stringify(value);
+                        if (displayValue.length > 100) {
+                            displayValue = displayValue.substring(0, 100) + '...';
+                        }
+                        displayValue = this.escapeHtml(displayValue);
+                        valueClass += ' object-value';
+                    }
+                    
+                    content += `<tr><td class="data-key">${this.escapeHtml(key)}</td><td class="${valueClass}">${displayValue}</td></tr>`;
+                }
+                
+                content += '</table>';
+                
+                const fieldCount = Object.keys(jsonData).length;
+                content += `<div class="content-meta">Fields sent: ${fieldCount} | Message size: ${data.length} bytes</div>`;
+                
+            } else {
+                // Fallback if string is not JSON - show as raw string
+                content += '<table class="message-data-table">';
+                content += '<tr><td class="data-key">Type</td><td class="data-value">Raw String</td></tr>';
+                content += `<tr><td class="data-key">Content</td><td class="data-value">${this.escapeHtml(data)}</td></tr>`;
+                content += `<tr><td class="data-key">Length</td><td class="data-value">${data.length} characters</td></tr>`;
+                if (parseError) {
+                    content += `<tr><td class="data-key">Parse Error</td><td class="data-value error-content">${this.escapeHtml(parseError.message)}</td></tr>`;
+                }
+                content += '</table>';
+            }
+        } else {
+            // Object data (shouldn't happen for OSC messages, but handle just in case)
+            content += '<table class="message-data-table">';
+            
+            // Display each field in the table
+            for (const [key, value] of Object.entries(data)) {
+                let displayValue = value;
+                let valueClass = 'data-value';
+                
+                // Format different types appropriately
+                if (typeof value === 'string') {
+                    displayValue = value.length > 100 ? value.substring(0, 100) + '...' : value;
+                    displayValue = `"${this.escapeHtml(displayValue)}"`;
+                } else if (typeof value === 'number') {
+                    displayValue = value;
+                    valueClass += ' number-value';
+                } else if (typeof value === 'boolean') {
+                    displayValue = value ? 'true' : 'false';
+                    valueClass += value ? ' boolean-true' : ' boolean-false';
+                } else if (value === null) {
+                    displayValue = 'null';
+                    valueClass += ' null-value';
+                } else if (typeof value === 'object') {
+                    displayValue = JSON.stringify(value);
+                    if (displayValue.length > 100) {
+                        displayValue = displayValue.substring(0, 100) + '...';
+                    }
+                    displayValue = this.escapeHtml(displayValue);
+                    valueClass += ' object-value';
+                }
+                
+                content += `<tr><td class="data-key">${this.escapeHtml(key)}</td><td class="${valueClass}">${displayValue}</td></tr>`;
+            }
+            
+            content += '</table>';
+            
+            const jsonSize = JSON.stringify(data).length;
+            content += `<div class="content-meta">Total Size: ${jsonSize} bytes | Fields: ${Object.keys(data).length}</div>`;
+        }
+        
+        content += '</div>';
+        content += '</div>';
+        return content;
+    }
+    
+    categorizeEndpoint(endpoint) {
+        if (endpoint.includes('/youtube')) return 'youtube';
+        if (endpoint.includes('/bilibili')) return 'bilibili';
+        if (endpoint.includes('/niconama') || endpoint.includes('/niconico')) return 'niconico';
+        if (endpoint.includes('/test')) return 'test';
+        return 'unknown';
+    }
+    
+    buildJsonDataReadable(jsonData) {
+        let content = '<div class="field-group">';
+        content += '<div class="field-group-title"><i class="fas fa-database"></i> Message Data</div>';
+        
+        // Extract key information from JSON
+        if (jsonData.name) {
+            content += `<div class="field-item"><span class="field-label">User:</span> <span class="field-value user-name">${jsonData.name}</span></div>`;
+        }
+        
+        if (jsonData.comment) {
+            const comment = jsonData.comment.length > 80 ? jsonData.comment.substring(0, 80) + '...' : jsonData.comment;
+            content += `<div class="field-item"><span class="field-label">Message:</span> <span class="field-value message-text">"${comment}"</span></div>`;
+        }
+        
+        if (jsonData.hasGift || jsonData.price || jsonData.giftName) {
+            content += `<div class="field-item"><span class="field-label">Gift:</span>`;
+            
+            if (jsonData.giftName) {
+                content += ` <span class="field-value gift-name">${jsonData.giftName}</span>`;
+            }
+            
+            if (jsonData.price) {
+                const priceColor = jsonData.price >= 50 ? '#e74c3c' : jsonData.price >= 10 ? '#f39c12' : '#27ae60';
+                content += ` <span class="field-value price-value" style="color: ${priceColor}; font-weight: bold;">($${jsonData.price})</span>`;
+            }
+            
+            content += `</div>`;
+        }
+        
+        // Platform-specific fields
+        if (jsonData.userLevel) {
+            const levelColor = jsonData.userLevel >= 20 ? '#f39c12' : jsonData.userLevel >= 10 ? '#e74c3c' : '#95a5a6';
+            content += `<div class="field-item"><span class="field-label">Level:</span> <span class="field-value" style="color: ${levelColor}; font-weight: bold;">UL${jsonData.userLevel}</span></div>`;
+        }
+        
+        if (jsonData.isMember || jsonData.isModerator || jsonData.isVip) {
+            content += `<div class="field-item"><span class="field-label">Status:</span>`;
+            
+            if (jsonData.isMember) content += ` <span class="field-value member-badge">Member</span>`;
+            if (jsonData.isModerator) content += ` <span class="field-value mod-badge">Moderator</span>`;
+            if (jsonData.isVip) content += ` <span class="field-value vip-badge">VIP</span>`;
+            
+            content += `</div>`;
+        }
+        
+        // Data size information
+        const jsonString = JSON.stringify(jsonData);
+        content += `<div class="field-item"><span class="field-label">Data Size:</span> <span class="field-value">${jsonString.length} bytes</span></div>`;
+        
+        const fieldCount = Object.keys(jsonData).length;
+        content += `<div class="field-item"><span class="field-label">Fields:</span> <span class="field-value">${fieldCount} fields</span></div>`;
+        
+        content += '</div>';
+        return content;
     }
 
     renderOutgoingMessage(msg) {
@@ -916,26 +1271,33 @@ class RoutingUI {
         const endpointParts = msg.endpoint.split('/');
         const endpointName = endpointParts[endpointParts.length - 1] || 'root';
         
+        // Get platform source with same coloration as incoming messages
+        const platformSource = this.categorizeEndpoint(msg.endpoint);
+        let platformSpan = '';
+        if (platformSource !== 'unknown') {
+            platformSpan = `<span class="log-service ${platformSource}">${platformSource}</span>`;
+        }
+        
+        // Build human-readable display for outgoing data
+        const readableContent = this.buildOutgoingReadableContent(msg.data, msg.endpoint);
+        
         return `
-            <div class="log-message outgoing ${msg.success ? 'success' : 'error'}" onclick="toggleLogJson('${msg.id}')">
+            <div class="log-message outgoing ${msg.success ? 'success' : 'error'}">
                 <div class="log-header">
                     <div class="log-title">
                         ${statusIcon}
-                        <strong>OSC Message</strong>
+                        <span class="log-endpoint">${msg.endpoint}</span>
+                        ${platformSpan}
                         ${msg.error ? `<span style="color: #f56565; font-size: 12px;">(${msg.error})</span>` : ''}
                     </div>
                     <div class="log-time">${time}</div>
                 </div>
-                <div style="margin-bottom: 8px;">
-                    <span class="log-endpoint">${msg.endpoint}</span>
+                <div class="log-readable-content">
+                    ${readableContent}
                 </div>
-                <div class="log-content">
-                    Data: ${typeof msg.data === 'string' ? msg.data.substring(0, 100) : JSON.stringify(msg.data).substring(0, 100)}${msg.data.length > 100 ? '...' : ''}
+                <div class="log-toggle" onclick="toggleLogJson('${msg.id}')">
+                    <i class="fas fa-code"></i> Click to view raw Data
                 </div>
-                <div class="log-preview">
-                    ${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data, null, 2)}
-                </div>
-                <div class="log-toggle">📄 Click to view full data</div>
                 <div class="log-json" id="json-${msg.id}">${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data, null, 2)}</div>
             </div>
         `;
@@ -1086,6 +1448,10 @@ function importConfiguration(fileInput) {
     app.importConfiguration(fileInput);
 }
 
+function saveDefaultEndpointsSetting() {
+    app.saveDefaultEndpointsSetting();
+}
+
 function refreshLogs() {
     app.loadLogs();
 }
@@ -1100,10 +1466,10 @@ function toggleLogJson(messageId) {
     
     if (jsonElement.style.display === 'none' || !jsonElement.style.display) {
         jsonElement.style.display = 'block';
-        toggleElement.textContent = '📄 Click to hide JSON';
+        toggleElement.innerHTML = '<i class="fas fa-eye-slash"></i> Click to hide raw Data';
     } else {
         jsonElement.style.display = 'none';
-        toggleElement.textContent = '📄 Click to view full JSON';
+        toggleElement.innerHTML = '<i class="fas fa-code"></i> Click to view raw Data';
     }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "onecomme-osc-router",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "OneComme OSC Router - Enhanced plugin with conditional routing and web UI for live streaming applications",
   "main": "plugin.js",
   "scripts": {

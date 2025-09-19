@@ -92,7 +92,8 @@ class ConfigManager {
         // Return default configuration
         const defaultConfig = {
             oscPort: defaultPort,
-            oscHost: endpoint
+            oscHost: endpoint,
+            enableDefaultEndpoints: true
         };
         this.saveConfig(defaultConfig);
         return defaultConfig;
@@ -126,6 +127,16 @@ class ConfigManager {
         this.config.oscHost = host || endpoint;
         this.saveConfig();
         return this.config.oscHost;
+    }
+    
+    getEnableDefaultEndpoints() {
+        return this.config.enableDefaultEndpoints !== false;
+    }
+    
+    setEnableDefaultEndpoints(enabled) {
+        this.config.enableDefaultEndpoints = !!enabled;
+        this.saveConfig();
+        return this.config.enableDefaultEndpoints;
     }
 }
 
@@ -451,14 +462,15 @@ class WebUIServer {
                 success: true, 
                 config: {
                     oscPort: this.configManager.getOscPort(),
-                    oscHost: this.configManager.getOscHost()
+                    oscHost: this.configManager.getOscHost(),
+                    enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints()
                 }
             });
         });
 
         this.app.put('/api/config', (req, res) => {
             try {
-                const { oscPort, oscHost } = req.body;
+                const { oscPort, oscHost, enableDefaultEndpoints } = req.body;
                 const updatedConfig = {};
                 
                 if (oscPort !== undefined) {
@@ -469,14 +481,19 @@ class WebUIServer {
                     updatedConfig.oscHost = this.configManager.updateOscHost(oscHost);
                 }
                 
+                if (enableDefaultEndpoints !== undefined) {
+                    updatedConfig.enableDefaultEndpoints = this.configManager.setEnableDefaultEndpoints(enableDefaultEndpoints);
+                }
+                
                 res.json({ 
                     success: true, 
                     message: 'Configuration updated successfully',
                     config: {
                         oscPort: this.configManager.getOscPort(),
-                        oscHost: this.configManager.getOscHost()
+                        oscHost: this.configManager.getOscHost(),
+                        enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints()
                     },
-                    note: 'OSC client will be reconnected on next message'
+                    note: enableDefaultEndpoints !== undefined ? 'Default endpoints setting updated' : 'OSC client will be reconnected on next message'
                 });
             } catch (error) {
                 res.status(400).json({ success: false, error: error.message });
@@ -701,7 +718,7 @@ class Domain {
         this.name = "OneComme OSC Router";
         this.version = "2.0.0";
         this.author = "noodledostuff";
-        this.url = "https://github.com/noodledostuff/onecommeOSCrouter";
+        this.url = "http://127.0.0.1:19101";
         this.permissions = ["comments"];
         this.defaultState = {};
         
@@ -790,8 +807,8 @@ class Domain {
                     }
                 }
 
-                // Send to default endpoints if not blocked
-                if (ruleResult.shouldProcess) {
+                // Send to default endpoints if not blocked and default endpoints are enabled
+                if (ruleResult.shouldProcess && this.configManager.getEnableDefaultEndpoints()) {
                     this.sendToDefaultEndpoints(subject);
                 }
 
@@ -842,19 +859,15 @@ class Domain {
             if (this.client) {
                 this.client.send(message);
                 
-                // Log successful outgoing message
-                const logData = data.toString().length > 200 ? 
-                    data.toString().substring(0, 200) + '...' : 
-                    data.toString();
+                // Log successful outgoing message - preserve full JSON for web UI parsing
+                const logData = data.toString();
                 this.messageLogger.logOutgoing(oscEndpoint, logData, true);
             } else {
                 throw new Error('OSC client not available');
             }
         } catch (error) {
-            // Log failed outgoing message
-            const logData = data.toString().length > 200 ? 
-                data.toString().substring(0, 200) + '...' : 
-                data.toString();
+            // Log failed outgoing message - preserve full JSON for web UI parsing
+            const logData = data.toString();
             this.messageLogger.logOutgoing(oscEndpoint, logData, false, error.message);
             throw error;
         }

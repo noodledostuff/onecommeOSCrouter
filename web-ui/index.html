@@ -520,6 +520,19 @@
             background: #ff6600;
             color: white;
         }
+        
+        /* Ensure consistent spacing and sizing for header elements */
+        .log-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .log-title .log-service,
+        .log-title .user-badge {
+            margin-right: 0;
+        }
 
         .log-endpoint {
             display: inline-block;
@@ -584,6 +597,235 @@
             text-align: center;
             padding: 60px 20px;
             color: #a0aec0;
+        }
+        
+        /* Enhanced readable content styles */
+        .log-readable-content {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .field-group {
+            margin-bottom: 12px;
+        }
+        
+        .field-group-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+        
+        /* Improved user info styling */
+        .user-info-table {
+            margin: 8px 0;
+        }
+        
+        .user-info-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .user-name-primary {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #212529;
+        }
+        
+        .user-badges-inline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .user-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: white;
+            background: #6c757d;
+        }
+        
+        .level-badge { background: #28a745; }
+        .member-badge { background: #28a745; }
+        .mod-badge { background: #ffc107; color: #212529; }
+        .vip-badge { background: #dc3545; }
+        .svip-badge { background: #6f42c1; }
+        .guard-badge { background: #fd7e14; }
+        
+        /* Improved gift info styling */
+        .gift-info-table {
+            margin: 8px 0;
+        }
+        
+        .gift-info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .gift-name-primary {
+            font-weight: bold;
+            color: #e83e8c;
+        }
+        
+        .gift-price-primary {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Improved outgoing message styling */
+        .endpoint-display {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #495057;
+        }
+        
+        .platform-source {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .message-content-formatted {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        
+        .content-type {
+            font-weight: bold;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        
+        .content-value {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 8px;
+        }
+        
+        .error-content {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .content-meta {
+            font-size: 0.8em;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .json-preview-table {
+            margin: 8px 0;
+        }
+        
+        .json-field-row {
+            display: flex;
+            margin-bottom: 4px;
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .json-field-key {
+            font-weight: bold;
+            color: #1a73e8;
+            min-width: 120px;
+            flex-shrink: 0;
+        }
+        
+        .json-field-value {
+            color: #5f6368;
+            word-break: break-word;
+            margin-left: 8px;
+        }
+        
+        /* Message data table styles */
+        .message-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        .message-data-table td {
+            padding: 6px 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+        
+        .data-key {
+            font-weight: bold;
+            color: #495057;
+            background: #f8f9fa;
+            width: 25%;
+            min-width: 100px;
+        }
+        
+        .data-value {
+            color: #212529;
+            word-break: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+        
+        .data-value.number-value {
+            color: #0d6efd;
+            font-weight: bold;
+        }
+        
+        .data-value.boolean-true {
+            color: #198754;
+            font-weight: bold;
+        }
+        
+        .data-value.boolean-false {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .data-value.null-value {
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .data-value.object-value {
+            color: #6f42c1;
+        }
+        
+        .data-value.error-content {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 4px;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -871,6 +1113,39 @@
                         </div>
                         
                         <div id="config-status" style="padding: 10px; border-radius: 5px; margin-top: 10px; display: none;"></div>
+                    </div>
+                    
+                    <hr style="margin: 30px 0;">
+                    
+                    <div class="form-group">
+                        <h3><i class="fas fa-toggle-on"></i> Default Endpoints</h3>
+                        <p style="color: #718096; margin-bottom: 20px;">Control whether built-in default OSC endpoints are enabled or disabled.</p>
+                        
+                        <div style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0; color: #0056b3;"><i class="fas fa-info-circle"></i> What are Default Endpoints?</h4>
+                            <p style="margin-bottom: 10px;">Default endpoints are built-in OSC routes that automatically send messages to standard paths based on the platform and message type:</p>
+                            <ul style="margin-bottom: 10px; padding-left: 20px;">
+                                <li><strong>YouTube:</strong> <code>/onecomme/youtube/comment</code>, <code>/onecomme/youtube/super</code></li>
+                                <li><strong>Bilibili:</strong> <code>/onecomme/bilibili/comment</code>, <code>/onecomme/bilibili/gift</code></li>
+                                <li><strong>Niconico:</strong> <code>/onecomme/niconico/comment</code></li>
+                            </ul>
+                            <p style="margin-bottom: 0; font-weight: bold; color: #d63384;">⚠️ Important:</p>
+                            <p style="margin-bottom: 0;">Disabling default endpoints means <strong>only your custom routing rules</strong> will send OSC messages. This gives you complete control over message routing but requires you to create custom rules for all desired message types.</p>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="enable-default-endpoints" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <label for="enable-default-endpoints" style="cursor: pointer; font-weight: bold; color: #495057;">
+                                <i class="fas fa-broadcast-tower"></i> Enable Default Endpoints
+                            </label>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="saveDefaultEndpointsSetting()">
+                            <i class="fas fa-save"></i> Save Default Endpoints Setting
+                        </button>
                     </div>
                     
                     <hr style="margin: 30px 0;">
