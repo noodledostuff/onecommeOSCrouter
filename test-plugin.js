@@ -1,4 +1,4 @@
-const plugin = require('./enhanced-plugin');
+const plugin = require('./plugin');
 
 console.log("=== OneComme OSC Router Test ===");
 console.log(`Plugin: ${plugin.name} v${plugin.version}`);

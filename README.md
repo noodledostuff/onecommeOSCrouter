@@ -98,21 +98,20 @@ Rules consist of:
 
 ```
 onecommeOSCrouter/
-├── enhanced-plugin.js      # Main router plugin
-├── plugin.js              # Legacy plugin (backward compatibility)
-├── test-enhanced-plugin.js # Test script
-├── routing-rules.json     # Rule configuration file
-├── package.json           # Project configuration
-├── impl/                  # Platform implementations
-│   ├── bilibili/         # Bilibili message handlers
-│   ├── youtube/          # YouTube message handlers  
-│   └── niconico.js       # Niconico message handlers
-├── web-ui/               # Web configuration interface
-│   ├── index.html        # Main UI interface
-│   └── app.js           # Frontend JavaScript
-├── README.md             # This file
-├── ENHANCED-README.md    # Detailed documentation
-└── LICENSE              # MIT License
+├── plugin.js             # Main OSC router plugin with web UI
+├── test-plugin.js        # Test script
+├── routing-rules.json    # Rule configuration file
+├── package.json          # Project configuration
+├── impl/                 # Platform implementations
+│   ├── bilibili/        # Bilibili message handlers
+│   ├── youtube/         # YouTube message handlers  
+│   └── niconico.js      # Niconico message handlers
+├── web-ui/              # Web configuration interface
+│   ├── index.html       # Main UI interface
+│   └── app.js          # Frontend JavaScript
+├── README.md            # This file
+├── ENHANCED-README.md   # Detailed documentation
+└── LICENSE             # MIT License
 ```
 
 ## 🧪 Testing
@@ -123,9 +122,6 @@ npm test
 
 # Run in development mode
 npm run dev
-
-# Run legacy plugin
-npm run legacy
 ```
 
 The test script will:
