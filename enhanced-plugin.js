@@ -74,7 +74,8 @@ class RuleEngine {
     }
 
     evaluateCondition(condition, message) {
-        const { field, operator, value, dataType } = condition;
+        const { field, operator, dataType } = condition;
+        let { value } = condition;
         let messageValue = this.getFieldValue(message, field);
 
         // Type conversion based on dataType
