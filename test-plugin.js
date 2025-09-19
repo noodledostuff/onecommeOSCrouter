@@ -97,7 +97,8 @@ async function testPlugin() {
     
     console.log();
     console.log("🌐 Web UI available at: http://localhost:19101");
-    console.log("🔗 OSC messages being sent to: 127.0.0.1:19100");
+    console.log("🔗 OSC messages being sent to configurable endpoint (default: 127.0.0.1:19100)");
+    console.log("⚙️  Change OSC port/host in the Settings tab of the Web UI");
     console.log();
     console.log("📋 Try these test scenarios in the Web UI:");
     console.log("1. Create a rule for high-value gifts (price > $10)");

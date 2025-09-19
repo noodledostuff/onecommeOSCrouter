@@ -96,3 +96,6 @@ build/
 # Temporary files
 tmp/
 temp/
+
+# Configuration files (user-specific)
+config.json

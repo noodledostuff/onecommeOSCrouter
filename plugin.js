@@ -10,9 +10,68 @@ const { YouTubeComment, YouTubeSuperChat } = require('./impl/youtube/index');
 const { BilibiliComment, BilibiliGift } = require('./impl/bilibili/index');
 
 const endpoint = "127.0.0.1";
-const port = 19100;
+const defaultPort = 19100;
 const webUIPort = 19101; // Web UI will run on this port
 const defaultPostApi = "/onecomme/common";
+
+// Configuration management
+class ConfigManager {
+    constructor() {
+        this.configPath = path.join(__dirname, 'config.json');
+        this.config = this.loadConfig();
+    }
+
+    loadConfig() {
+        try {
+            if (fs.existsSync(this.configPath)) {
+                const data = fs.readFileSync(this.configPath, 'utf8');
+                const config = JSON.parse(data);
+                console.info(`Loaded configuration: OSC port ${config.oscPort}`);
+                return config;
+            }
+        } catch (error) {
+            console.warn('Failed to load configuration:', error.message);
+        }
+        
+        // Return default configuration
+        const defaultConfig = {
+            oscPort: defaultPort,
+            oscHost: endpoint
+        };
+        this.saveConfig(defaultConfig);
+        return defaultConfig;
+    }
+
+    saveConfig(config = null) {
+        try {
+            const configToSave = config || this.config;
+            fs.writeFileSync(this.configPath, JSON.stringify(configToSave, null, 2));
+            console.info(`Saved configuration: OSC port ${configToSave.oscPort}`);
+        } catch (error) {
+            console.error('Failed to save configuration:', error.message);
+        }
+    }
+
+    getOscPort() {
+        return this.config.oscPort || defaultPort;
+    }
+
+    getOscHost() {
+        return this.config.oscHost || endpoint;
+    }
+
+    updateOscPort(port) {
+        this.config.oscPort = parseInt(port) || defaultPort;
+        this.saveConfig();
+        return this.config.oscPort;
+    }
+
+    updateOscHost(host) {
+        this.config.oscHost = host || endpoint;
+        this.saveConfig();
+        return this.config.oscHost;
+    }
+}
 
 // Rule engine for conditional routing
 class RuleEngine {
@@ -245,8 +304,9 @@ class EnhancedMessageConverter {
 
 // Web UI server
 class WebUIServer {
-    constructor(ruleEngine) {
+    constructor(ruleEngine, configManager) {
         this.ruleEngine = ruleEngine;
+        this.configManager = configManager;
         this.app = express();
         this.server = null;
         this.setupMiddleware();
@@ -323,6 +383,44 @@ class WebUIServer {
                 const { rule, testMessage } = req.body;
                 const result = this.ruleEngine.evaluateRule(rule, testMessage);
                 res.json({ success: true, matches: result });
+            } catch (error) {
+                res.status(400).json({ success: false, error: error.message });
+            }
+        });
+
+        // Configuration endpoints
+        this.app.get('/api/config', (req, res) => {
+            res.json({ 
+                success: true, 
+                config: {
+                    oscPort: this.configManager.getOscPort(),
+                    oscHost: this.configManager.getOscHost()
+                }
+            });
+        });
+
+        this.app.put('/api/config', (req, res) => {
+            try {
+                const { oscPort, oscHost } = req.body;
+                const updatedConfig = {};
+                
+                if (oscPort !== undefined) {
+                    updatedConfig.oscPort = this.configManager.updateOscPort(oscPort);
+                }
+                
+                if (oscHost !== undefined) {
+                    updatedConfig.oscHost = this.configManager.updateOscHost(oscHost);
+                }
+                
+                res.json({ 
+                    success: true, 
+                    message: 'Configuration updated successfully',
+                    config: {
+                        oscPort: this.configManager.getOscPort(),
+                        oscHost: this.configManager.getOscHost()
+                    },
+                    note: 'OSC client will be reconnected on next message'
+                });
             } catch (error) {
                 res.status(400).json({ success: false, error: error.message });
             }
@@ -451,16 +549,17 @@ class Domain {
         this.defaultState = {};
         
         // Enhanced components
+        this.configManager = new ConfigManager();
         this.converter = new EnhancedMessageConverter();
         this.ruleEngine = this.converter.ruleEngine;
-        this.webUI = new WebUIServer(this.ruleEngine);
+        this.webUI = new WebUIServer(this.ruleEngine, this.configManager);
         this.client = null;
     }
 
     async init(_api, _initialData) {
         console.info("OneComme OSC Router initializing...");
         
-        this.client = new Client(endpoint, port);
+        this.initOscClient();
         
         try {
             await this.webUI.start();
@@ -468,6 +567,21 @@ class Domain {
         } catch (error) {
             console.error("Failed to start configuration UI:", error.message);
         }
+    }
+
+    initOscClient() {
+        if (this.client) {
+            this.client.close();
+        }
+        
+        const oscPort = this.configManager.getOscPort();
+        const oscHost = this.configManager.getOscHost();
+        
+        this.client = new Client(oscHost, oscPort);
+        this.lastConnectedPort = oscPort;
+        this.lastConnectedHost = oscHost;
+        
+        console.info(`OSC Client connected to ${oscHost}:${oscPort}`);
     }
 
     destroy() {
@@ -560,11 +674,29 @@ class Domain {
     }
 
     send(oscEndpoint, data) {
-        console.info(`Sending message to ${oscEndpoint}: ${data.toString().substring(0, 100)}...`);
+        // Ensure we have the latest OSC client configuration
+        if (!this.client || this.shouldReconnectClient()) {
+            this.initOscClient();
+        }
+        
+        const oscPort = this.configManager.getOscPort();
+        const oscHost = this.configManager.getOscHost();
+        
+        console.info(`Sending message to ${oscHost}:${oscPort}${oscEndpoint}: ${data.toString().substring(0, 100)}...`);
         const message = new Message(oscEndpoint, data);
         if (this.client) {
             this.client.send(message);
         }
+    }
+    
+    shouldReconnectClient() {
+        if (!this.client) return true;
+        
+        // Check if configuration has changed since last connection
+        const currentPort = this.configManager.getOscPort();
+        const currentHost = this.configManager.getOscHost();
+        
+        return this.lastConnectedPort !== currentPort || this.lastConnectedHost !== currentHost;
     }
 }
 

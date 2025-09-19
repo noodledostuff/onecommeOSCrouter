@@ -62,6 +62,8 @@ class RoutingUI {
         // Load data for specific tabs
         if (tabName === 'rules') {
             this.refreshRules();
+        } else if (tabName === 'settings') {
+            this.loadConfigurationUI();
         }
     }
 
@@ -586,6 +588,188 @@ class RoutingUI {
         document.getElementById('edit-modal').classList.remove('show');
     }
 
+    async loadConfigurationUI() {
+        try {
+            const response = await fetch('/api/config');
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('osc-host').value = data.config.oscHost || '127.0.0.1';
+                document.getElementById('osc-port').value = data.config.oscPort || 19100;
+                document.getElementById('current-osc-target').textContent = `${data.config.oscHost}:${data.config.oscPort}`;
+            }
+        } catch (error) {
+            console.error('Failed to load configuration:', error);
+            this.showNotification('Failed to load configuration', 'error');
+        }
+    }
+
+    async saveConfiguration() {
+        try {
+            const oscHost = document.getElementById('osc-host').value.trim() || '127.0.0.1';
+            const oscPort = parseInt(document.getElementById('osc-port').value) || 19100;
+            
+            if (oscPort < 1024 || oscPort > 65535) {
+                this.showNotification('OSC Port must be between 1024 and 65535', 'warning');
+                return;
+            }
+            
+            const response = await fetch('/api/config', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ oscHost, oscPort })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('Configuration saved successfully!', 'success');
+                document.getElementById('current-osc-target').textContent = `${result.config.oscHost}:${result.config.oscPort}`;
+                
+                // Show status message
+                const statusDiv = document.getElementById('config-status');
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#e6fffa';
+                statusDiv.style.border = '1px solid #38b2ac';
+                statusDiv.style.color = '#38b2ac';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    Configuration updated! OSC messages will now be sent to ${result.config.oscHost}:${result.config.oscPort}
+                `;
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            } else {
+                throw new Error(result.error || 'Failed to save configuration');
+            }
+        } catch (error) {
+            console.error('Failed to save configuration:', error);
+            this.showNotification('Failed to save configuration: ' + error.message, 'error');
+        }
+    }
+    
+    async loadConfiguration() {
+        await this.loadConfigurationUI();
+        this.showNotification('Configuration reloaded', 'success');
+    }
+    
+    async testOscConnection() {
+        const oscHost = document.getElementById('osc-host').value.trim() || '127.0.0.1';
+        const oscPort = parseInt(document.getElementById('osc-port').value) || 19100;
+        
+        this.showNotification(`Testing connection to ${oscHost}:${oscPort}...`, 'info');
+        
+        // Simulate connection test
+        setTimeout(() => {
+            const statusDiv = document.getElementById('config-status');
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#fff3cd';
+            statusDiv.style.border = '1px solid #ffc107';
+            statusDiv.style.color = '#856404';
+            statusDiv.innerHTML = `
+                <i class="fas fa-info-circle"></i> 
+                Connection test completed. OSC messages will be sent to ${oscHost}:${oscPort} when rules are triggered.
+                <br><small>Note: OSC is a UDP protocol - no direct connection confirmation is available.</small>
+            `;
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 8000);
+        }, 1000);
+    }
+    
+    async exportConfiguration() {
+        try {
+            const [rulesResponse, configResponse] = await Promise.all([
+                fetch('/api/rules'),
+                fetch('/api/config')
+            ]);
+            
+            const rulesData = await rulesResponse.json();
+            const configData = await configResponse.json();
+            
+            const exportData = {
+                version: '2.0.0',
+                exportedAt: new Date().toISOString(),
+                rules: rulesData.rules || [],
+                config: configData.config || {}
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `onecomme-osc-router-config-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            this.showNotification('Configuration exported successfully!', 'success');
+        } catch (error) {
+            console.error('Failed to export configuration:', error);
+            this.showNotification('Failed to export configuration: ' + error.message, 'error');
+        }
+    }
+    
+    async importConfiguration(fileInput) {
+        const file = fileInput.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const importData = JSON.parse(text);
+            
+            if (!importData.rules && !importData.config) {
+                throw new Error('Invalid configuration file format');
+            }
+            
+            // Import configuration
+            if (importData.config) {
+                const response = await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(importData.config)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to import configuration');
+                }
+            }
+            
+            // Import rules
+            if (importData.rules && importData.rules.length > 0) {
+                for (const rule of importData.rules) {
+                    await fetch('/api/rules', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(rule)
+                    });
+                }
+            }
+            
+            this.showNotification(`Configuration imported successfully! Imported ${importData.rules?.length || 0} rules.`, 'success');
+            
+            // Refresh UI
+            await this.loadConfigurationUI();
+            await this.refreshRules();
+            
+        } catch (error) {
+            console.error('Failed to import configuration:', error);
+            this.showNotification('Failed to import configuration: ' + error.message, 'error');
+        } finally {
+            // Reset file input
+            fileInput.value = '';
+        }
+    }
+
     showNotification(message, type = 'info') {
         // Create notification element
         const notification = document.createElement('div');
@@ -668,6 +852,26 @@ function testRules() {
 
 function closeEditModal() {
     app.closeEditModal();
+}
+
+function saveConfiguration() {
+    app.saveConfiguration();
+}
+
+function loadConfiguration() {
+    app.loadConfiguration();
+}
+
+function testOscConnection() {
+    app.testOscConnection();
+}
+
+function exportConfiguration() {
+    app.exportConfiguration();
+}
+
+function importConfiguration(fileInput) {
+    app.importConfiguration(fileInput);
 }
 
 // Initialize the app when the page loads
