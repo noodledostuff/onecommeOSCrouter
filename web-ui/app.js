@@ -660,25 +660,80 @@ class RoutingUI {
         const oscHost = document.getElementById('osc-host').value.trim() || '127.0.0.1';
         const oscPort = parseInt(document.getElementById('osc-port').value) || 19100;
         
-        this.showNotification(`Testing connection to ${oscHost}:${oscPort}...`, 'info');
+        if (oscPort < 1024 || oscPort > 65535) {
+            this.showNotification('OSC Port must be between 1024 and 65535', 'warning');
+            return;
+        }
         
-        // Simulate connection test
-        setTimeout(() => {
+        this.showNotification(`Sending test OSC messages to ${oscHost}:${oscPort}...`, 'info');
+        
+        try {
+            const response = await fetch('/api/osc/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ oscHost, oscPort })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const statusDiv = document.getElementById('config-status');
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#e6fffa';
+                statusDiv.style.border = '1px solid #38b2ac';
+                statusDiv.style.color = '#38b2ac';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    <strong>Test OSC messages sent successfully!</strong><br>
+                    Target: ${result.target}<br>
+                    Time: ${new Date(result.timestamp).toLocaleString()}<br>
+                    <small>
+                        Sent test messages to endpoints:<br>
+                        • /onecomme/test<br>
+                        • /onecomme/connection-test<br>
+                        • /test/osc-router<br>
+                        • /onecomme/test/ping<br>
+                        <br>
+                        Check your OSC receiver application for incoming messages.
+                    </small>
+                `;
+                
+                this.showNotification(`Test messages sent to ${result.target}`, 'success');
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 15000);
+            } else {
+                throw new Error(result.error || 'Test failed');
+            }
+        } catch (error) {
+            console.error('OSC test failed:', error);
+            
             const statusDiv = document.getElementById('config-status');
             statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fff3cd';
-            statusDiv.style.border = '1px solid #ffc107';
-            statusDiv.style.color = '#856404';
+            statusDiv.style.background = '#fed7d7';
+            statusDiv.style.border = '1px solid #feb2b2';
+            statusDiv.style.color = '#e53e3e';
             statusDiv.innerHTML = `
-                <i class="fas fa-info-circle"></i> 
-                Connection test completed. OSC messages will be sent to ${oscHost}:${oscPort} when rules are triggered.
-                <br><small>Note: OSC is a UDP protocol - no direct connection confirmation is available.</small>
+                <i class="fas fa-exclamation-triangle"></i> 
+                <strong>OSC Test Failed</strong><br>
+                Error: ${error.message}<br>
+                <small>
+                    This could mean:<br>
+                    • Invalid host/port configuration<br>
+                    • Network connectivity issues<br>
+                    • Plugin internal error<br>
+                </small>
             `;
+            
+            this.showNotification(`OSC test failed: ${error.message}`, 'error');
             
             setTimeout(() => {
                 statusDiv.style.display = 'none';
-            }, 8000);
-        }, 1000);
+            }, 10000);
+        }
     }
     
     async exportConfiguration() {

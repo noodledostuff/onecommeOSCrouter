@@ -426,6 +426,38 @@ class WebUIServer {
             }
         });
 
+        // OSC Test endpoint
+        this.app.post('/api/osc/test', (req, res) => {
+            try {
+                const { oscPort, oscHost } = req.body;
+                const testHost = oscHost || this.configManager.getOscHost();
+                const testPort = parseInt(oscPort) || this.configManager.getOscPort();
+                
+                // Validate port range
+                if (testPort < 1024 || testPort > 65535) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'OSC Port must be between 1024 and 65535'
+                    });
+                }
+                
+                // Send test OSC message
+                this.sendTestOscMessage(testHost, testPort);
+                
+                res.json({
+                    success: true,
+                    message: `Test OSC message sent to ${testHost}:${testPort}`,
+                    target: `${testHost}:${testPort}`,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                res.status(400).json({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        });
+
         // Serve main UI
         this.app.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, 'web-ui', 'index.html'));
@@ -527,6 +559,55 @@ class WebUIServer {
 
             this.server.on('error', reject);
         });
+    }
+
+    sendTestOscMessage(host, port) {
+        try {
+            // Create a temporary OSC client for testing
+            const testClient = new Client(host, port);
+            
+            // Create test message with current timestamp
+            const testData = {
+                type: 'connection-test',
+                message: 'OneComme OSC Router Connection Test',
+                timestamp: new Date().toISOString(),
+                host: host,
+                port: port,
+                plugin: 'onecomme-osc-router',
+                version: '2.0.0',
+                author: 'noodledostuff'
+            };
+            
+            const jsonData = JSON.stringify(testData);
+            const utf8Data = Buffer.from(jsonData, "utf-8");
+            
+            // Send test messages to common endpoints
+            const testEndpoints = [
+                '/onecomme/test',
+                '/onecomme/connection-test',
+                '/test/osc-router'
+            ];
+            
+            testEndpoints.forEach(endpoint => {
+                const message = new Message(endpoint, utf8Data);
+                testClient.send(message);
+                console.info(`Test OSC message sent to ${host}:${port}${endpoint}`);
+            });
+            
+            // Send a simple string test message
+            const simpleMessage = new Message('/onecomme/test/ping', 'OneComme OSC Router Test - Connection OK');
+            testClient.send(simpleMessage);
+            console.info(`Simple test message sent to ${host}:${port}/onecomme/test/ping`);
+            
+            // Close the test client after a brief delay
+            setTimeout(() => {
+                testClient.close();
+            }, 100);
+            
+        } catch (error) {
+            console.error('Failed to send test OSC message:', error.message);
+            throw error;
+        }
     }
 
     stop() {
