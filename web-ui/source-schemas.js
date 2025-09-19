@@ -1,5 +1,52 @@
 // Source-Specific Condition Schemas for Enhanced Rule Builder
 // This defines what fields and conditions are available for each platform
+// Fields are categorized as common (shared across platforms) or platform-exclusive
+
+// Common fields shared across all platforms
+const CommonFields = {
+    name: { name: 'name', label: 'User Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+    comment: { name: 'comment', label: 'Message Text', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+    displayName: { name: 'displayName', label: 'Display Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+    hasGift: { name: 'hasGift', label: 'Has Gift', type: 'boolean', operators: ['equals'] },
+    isOwner: { name: 'isOwner', label: 'Is Channel Owner', type: 'boolean', operators: ['equals'] },
+    profileImageUrl: { name: 'profileImageUrl', label: 'Profile Image URL', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with'] },
+    timestamp: { name: 'timestamp', label: 'Message Timestamp', type: 'string', operators: ['equals', 'not_equals'] }
+};
+
+// Platform-exclusive field definitions
+const PlatformFields = {
+    youtube: {
+        isModerator: { name: 'isModerator', label: 'Is Moderator', type: 'boolean', operators: ['equals'] },
+        isMember: { name: 'isMember', label: 'Is Channel Member', type: 'boolean', operators: ['equals'] },
+        autoModerated: { name: 'autoModerated', label: 'Auto Moderated', type: 'boolean', operators: ['equals'] }
+    },
+    bilibili: {
+        userLevel: { name: 'userLevel', label: 'User Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        medalLevel: { name: 'medalLevel', label: 'Medal Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        medalName: { name: 'medalName', label: 'Medal Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+        isVip: { name: 'isVip', label: 'Is VIP', type: 'boolean', operators: ['equals'] },
+        isSvip: { name: 'isSvip', label: 'Is SVIP', type: 'boolean', operators: ['equals'] },
+        guardLevel: { name: 'guardLevel', label: 'Guard Level (0=none, 1=总督, 2=提督, 3=舰长)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        fansMedal: { name: 'fansMedal', label: 'Fans Medal', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains'] }
+    },
+    niconico: {
+        // Niconico-specific fields can be added here as they become available
+    }
+};
+
+// Message type specific fields (shared across platforms when applicable)
+const MessageTypeFields = {
+    gift: {
+        price: { name: 'price', label: 'Gift Price', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        giftName: { name: 'giftName', label: 'Gift Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+        quantity: { name: 'quantity', label: 'Gift Quantity', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] }
+    },
+    superchat: {
+        price: { name: 'price', label: 'SuperChat Amount', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        currency: { name: 'currency', label: 'Currency', type: 'string', operators: ['equals', 'not_equals'] },
+        significance: { name: 'significance', label: 'Significance Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] }
+    }
+};
 
 const SourceSchemas = {
     // YouTube message schema
@@ -8,22 +55,6 @@ const SourceSchemas = {
         color: '#ff0000',
         icon: 'fab fa-youtube',
         messageTypes: ['comment', 'superchat'],
-        commonFields: [
-            { name: 'name', label: 'User Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'comment', label: 'Message Text', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'displayName', label: 'Display Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'isOwner', label: 'Is Channel Owner', type: 'boolean', operators: ['equals'] },
-            { name: 'isModerator', label: 'Is Moderator', type: 'boolean', operators: ['equals'] },
-            { name: 'isMember', label: 'Is Channel Member', type: 'boolean', operators: ['equals'] },
-            { name: 'hasGift', label: 'Has Gift/SuperChat', type: 'boolean', operators: ['equals'] }
-        ],
-        specificFields: {
-            superchat: [
-                { name: 'price', label: 'SuperChat Amount (USD)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
-                { name: 'currency', label: 'Currency', type: 'string', operators: ['equals', 'not_equals'] },
-                { name: 'significance', label: 'Significance Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] }
-            ]
-        },
         defaultEndpoints: ['/onecomme/youtube/comment', '/onecomme/youtube/super']
     },
 
@@ -33,26 +64,6 @@ const SourceSchemas = {
         color: '#00a1d6',
         icon: 'fas fa-tv',
         messageTypes: ['comment', 'gift'],
-        commonFields: [
-            { name: 'name', label: 'User Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'comment', label: 'Message Text', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'displayName', label: 'Display Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'userLevel', label: 'User Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
-            { name: 'medalLevel', label: 'Medal Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
-            { name: 'medalName', label: 'Medal Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'isVip', label: 'Is VIP', type: 'boolean', operators: ['equals'] },
-            { name: 'isSvip', label: 'Is SVIP', type: 'boolean', operators: ['equals'] },
-            { name: 'guardLevel', label: 'Guard Level (0=none, 1=总督, 2=提督, 3=舰长)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
-            { name: 'isOwner', label: 'Is Channel Owner', type: 'boolean', operators: ['equals'] },
-            { name: 'hasGift', label: 'Has Gift', type: 'boolean', operators: ['equals'] }
-        ],
-        specificFields: {
-            gift: [
-                { name: 'price', label: 'Gift Price (CNY)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
-                { name: 'giftName', label: 'Gift Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-                { name: 'quantity', label: 'Gift Quantity', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] }
-            ]
-        },
         defaultEndpoints: ['/onecomme/bilibili/comment', '/onecomme/bilibili/gift']
     },
 
@@ -62,17 +73,6 @@ const SourceSchemas = {
         color: '#ff6600',
         icon: 'fas fa-video',
         messageTypes: ['comment', 'gift'],
-        commonFields: [
-            { name: 'name', label: 'User Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'comment', label: 'Message Text', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
-            { name: 'hasGift', label: 'Has Gift', type: 'boolean', operators: ['equals'] }
-        ],
-        specificFields: {
-            gift: [
-                { name: 'price', label: 'Gift Price (JPY)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
-                { name: 'giftName', label: 'Gift Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] }
-            ]
-        },
         defaultEndpoints: ['/onecomme/niconico/comment']
     }
 };
@@ -98,14 +98,124 @@ const SourceSchemaHelpers = {
     getAvailableFields(source, messageType = null) {
         if (!SourceSchemas[source]) return [];
         
-        const schema = SourceSchemas[source];
-        let fields = [...schema.commonFields];
+        let fields = [];
         
-        if (messageType && schema.specificFields && schema.specificFields[messageType]) {
-            fields = [...fields, ...schema.specificFields[messageType]];
+        // Add common fields (available to all platforms)
+        fields = fields.concat(Object.values(CommonFields).map(field => ({
+            ...field,
+            category: 'common',
+            platforms: ['all']
+        })));
+        
+        // Add platform-specific fields
+        if (PlatformFields[source]) {
+            fields = fields.concat(Object.values(PlatformFields[source]).map(field => ({
+                ...field,
+                category: 'platform',
+                platforms: [source]
+            })));
+        }
+        
+        // Add message type specific fields
+        if (messageType && MessageTypeFields[messageType]) {
+            fields = fields.concat(Object.values(MessageTypeFields[messageType]).map(field => ({
+                ...field,
+                category: 'message-type',
+                platforms: ['all'],
+                messageType: messageType
+            })));
         }
         
         return fields;
+    },
+
+    // Get all available output fields for multiple sources
+    getAvailableOutputFields(sources = []) {
+        if (sources.length === 0) return [];
+        
+        let allFields = {};
+        
+        // Always include common fields
+        Object.values(CommonFields).forEach(field => {
+            allFields[field.name] = {
+                ...field,
+                category: 'common',
+                platforms: ['all'],
+                available: true
+            };
+        });
+        
+        // Add platform-specific fields for selected sources
+        sources.forEach(source => {
+            if (PlatformFields[source]) {
+                Object.values(PlatformFields[source]).forEach(field => {
+                    allFields[field.name] = {
+                        ...field,
+                        category: 'platform',
+                        platforms: [source],
+                        available: true
+                    };
+                });
+            }
+        });
+        
+        // Add message type fields that might be available
+        Object.keys(MessageTypeFields).forEach(messageType => {
+            Object.values(MessageTypeFields[messageType]).forEach(field => {
+                if (!allFields[field.name]) {
+                    allFields[field.name] = {
+                        ...field,
+                        category: 'message-type',
+                        platforms: ['all'],
+                        messageType: messageType,
+                        available: true
+                    };
+                }
+            });
+        });
+        
+        return Object.values(allFields);
+    },
+
+    // Get field metadata including platform exclusivity
+    getFieldMetadata(fieldName, sources = []) {
+        // Check if it's a common field
+        if (CommonFields[fieldName]) {
+            return {
+                ...CommonFields[fieldName],
+                category: 'common',
+                platforms: ['all'],
+                exclusive: false
+            };
+        }
+        
+        // Check platform-specific fields
+        for (const source of Object.keys(PlatformFields)) {
+            if (PlatformFields[source][fieldName]) {
+                return {
+                    ...PlatformFields[source][fieldName],
+                    category: 'platform',
+                    platforms: [source],
+                    exclusive: true,
+                    available: sources.length === 0 || sources.includes(source)
+                };
+            }
+        }
+        
+        // Check message type fields
+        for (const messageType of Object.keys(MessageTypeFields)) {
+            if (MessageTypeFields[messageType][fieldName]) {
+                return {
+                    ...MessageTypeFields[messageType][fieldName],
+                    category: 'message-type',
+                    platforms: ['all'],
+                    messageType: messageType,
+                    exclusive: false
+                };
+            }
+        }
+        
+        return null;
     },
 
     // Get available operators for a field type
@@ -127,6 +237,25 @@ const SourceSchemaHelpers = {
     getField(source, fieldName, messageType = null) {
         const fields = this.getAvailableFields(source, messageType);
         return fields.find(f => f.name === fieldName) || null;
+    },
+
+    // Check if field is available for given sources
+    isFieldAvailableForSources(fieldName, sources) {
+        const metadata = this.getFieldMetadata(fieldName, sources);
+        if (!metadata) return false;
+        
+        // Common fields are always available
+        if (metadata.category === 'common') return true;
+        
+        // Message type fields are available if any source supports them
+        if (metadata.category === 'message-type') return true;
+        
+        // Platform-specific fields require the specific platform to be selected
+        if (metadata.category === 'platform') {
+            return sources.some(source => metadata.platforms.includes(source));
+        }
+        
+        return false;
     },
 
     // Validate condition against schema

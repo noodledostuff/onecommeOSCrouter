@@ -370,11 +370,19 @@ class RoutingUI {
                 }
             });
             
-            // Build selected fields
+            // Build selected fields from dynamic field selector
             const selectedFields = [];
-            document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
+            const dynamicFieldCheckboxes = document.querySelectorAll('#dynamic-field-selector-content input[type="checkbox"]:checked');
+            dynamicFieldCheckboxes.forEach(checkbox => {
                 selectedFields.push(checkbox.value);
             });
+            
+            // Fallback to legacy field selector if no dynamic fields found
+            if (selectedFields.length === 0) {
+                document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
+                    selectedFields.push(checkbox.value);
+                });
+            }
             
             return {
                 name,
@@ -418,11 +426,19 @@ class RoutingUI {
                 }
             });
             
-            // Build selected fields
+            // Build selected fields from dynamic field selector
             const selectedFields = [];
-            document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
+            const dynamicFieldCheckboxes = document.querySelectorAll('#dynamic-field-selector-content input[type="checkbox"]:checked');
+            dynamicFieldCheckboxes.forEach(checkbox => {
                 selectedFields.push(checkbox.value);
             });
+            
+            // Fallback to legacy field selector if no dynamic fields found
+            if (selectedFields.length === 0) {
+                document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
+                    selectedFields.push(checkbox.value);
+                });
+            }
             
             return {
                 name,
@@ -535,6 +551,9 @@ class RoutingUI {
         }
         
         this.updateGroupSummary(groupId);
+        
+        // Update dynamic field selector when sources change
+        this.updateDynamicFieldSelector();
     }
     
     onMessageTypeChange(messageType, groupId) {
@@ -728,6 +747,9 @@ class RoutingUI {
         if (groupCount > 1) {
             groupCard.remove();
             this.updateGroupLogicVisibility();
+            
+            // Update dynamic field selector when groups are removed
+            this.updateDynamicFieldSelector();
         } else {
             this.showNotification('At least one condition group is required', 'warning');
         }
@@ -794,6 +816,144 @@ class RoutingUI {
         };
     }
 
+    // Dynamic Field Selector Methods
+    updateDynamicFieldSelector() {
+        const selectedSources = this.getSelectedSources();
+        const container = document.getElementById('dynamic-field-selector-content');
+        
+        if (selectedSources.length === 0) {
+            container.innerHTML = `
+                <div class="no-fields-message">
+                    <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Select platforms in your condition groups to see available fields</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const availableFields = SourceSchemaHelpers.getAvailableOutputFields(selectedSources);
+        this.renderDynamicFieldSelector(availableFields, selectedSources);
+    }
+    
+    getSelectedSources() {
+        const sources = new Set();
+        const conditionGroups = document.querySelectorAll('.condition-group-card');
+        
+        conditionGroups.forEach(group => {
+            const groupId = group.dataset.groupId;
+            const sourceInput = group.querySelector(`input[name="source-${groupId}"]:checked`);
+            if (sourceInput) {
+                sources.add(sourceInput.value);
+            }
+        });
+        
+        return Array.from(sources);
+    }
+    
+    renderDynamicFieldSelector(fields, selectedSources) {
+        const container = document.getElementById('dynamic-field-selector-content');
+        
+        // Group fields by category
+        const fieldsByCategory = {
+            common: fields.filter(f => f.category === 'common'),
+            platform: fields.filter(f => f.category === 'platform'),
+            'message-type': fields.filter(f => f.category === 'message-type')
+        };
+        
+        let html = '';
+        
+        // Render common fields
+        if (fieldsByCategory.common.length > 0) {
+            html += this.renderFieldSection('Common Fields', fieldsByCategory.common, 'common');
+        }
+        
+        // Render platform-specific fields
+        if (fieldsByCategory.platform.length > 0) {
+            const platformFields = {};
+            fieldsByCategory.platform.forEach(field => {
+                const platform = field.platforms[0];
+                if (!platformFields[platform]) {
+                    platformFields[platform] = [];
+                }
+                platformFields[platform].push(field);
+            });
+            
+            Object.keys(platformFields).forEach(platform => {
+                const schema = SourceSchemas[platform];
+                const title = `${schema.name} Exclusive Fields`;
+                html += this.renderFieldSection(title, platformFields[platform], `platform-${platform}`);
+            });
+        }
+        
+        // Render message type fields
+        if (fieldsByCategory['message-type'].length > 0) {
+            html += this.renderFieldSection('Message Type Specific Fields', fieldsByCategory['message-type'], 'message-type');
+        }
+        
+        container.innerHTML = html;
+        
+        // Restore previously selected fields
+        this.restoreFieldSelections();
+    }
+    
+    renderFieldSection(title, fields, categoryClass) {
+        if (fields.length === 0) return '';
+        
+        return `
+            <div class="field-section">
+                <div class="field-section-title">
+                    <i class="fas fa-layer-group"></i> ${title}
+                </div>
+                <div class="field-grid">
+                    ${fields.map(field => this.renderFieldOption(field, categoryClass)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderFieldOption(field, categoryClass) {
+        const isAvailable = field.available !== false;
+        const availabilityClass = isAvailable ? 'available' : 'unavailable';
+        
+        let badgeText = '';
+        let helpText = '';
+        
+        if (field.category === 'common') {
+            badgeText = 'COMMON';
+            helpText = 'Available on all platforms';
+        } else if (field.category === 'platform') {
+            const schema = SourceSchemas[field.platforms[0]];
+            badgeText = schema.name.toUpperCase();
+            helpText = `Only available for ${schema.name} messages`;
+        } else if (field.category === 'message-type') {
+            badgeText = field.messageType?.toUpperCase() || 'TYPE';
+            helpText = `Available for ${field.messageType || 'specific message'} types`;
+        }
+        
+        return `
+            <div class="field-option ${categoryClass} ${availabilityClass}">
+                <input type="checkbox" id="field-${field.name}" value="${field.name}" ${!isAvailable ? 'disabled' : ''}>
+                <label for="field-${field.name}" class="field-label">
+                    ${field.label}
+                    ${helpText ? `<div class="field-help-text">${helpText}</div>` : ''}
+                </label>
+                <span class="field-badge">${badgeText}</span>
+            </div>
+        `;
+    }
+    
+    restoreFieldSelections() {
+        // Get previously selected fields from the form data if editing
+        const defaultSelections = ['name', 'comment']; // Default selections
+        
+        defaultSelections.forEach(fieldName => {
+            const checkbox = document.getElementById(`field-${fieldName}`);
+            if (checkbox && !checkbox.disabled) {
+                checkbox.checked = true;
+            }
+        });
+    }
+
     initializeCreateRuleTab() {
         const container = document.getElementById('condition-groups-container');
         
@@ -804,6 +964,9 @@ class RoutingUI {
         if (container.querySelectorAll('.condition-group-card').length === 0) {
             this.addConditionGroup();
         }
+        
+        // Initialize dynamic field selector
+        this.updateDynamicFieldSelector();
     }
 
     clearForm() {
@@ -834,7 +997,18 @@ class RoutingUI {
             }
         }
         
-        // Reset field checkboxes
+        // Clear dynamic field selector content
+        const dynamicFieldContent = document.getElementById('dynamic-field-selector-content');
+        if (dynamicFieldContent) {
+            dynamicFieldContent.innerHTML = `
+                <div class="no-fields-message">
+                    <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Select platforms in your condition groups to see available fields</p>
+                </div>
+            `;
+        }
+        
+        // Reset legacy field checkboxes (for backward compatibility)
         document.querySelectorAll('#field-selector input[type="checkbox"]').forEach(checkbox => {
             if (checkbox.id === 'field-name' || checkbox.id === 'field-comment') {
                 checkbox.checked = true;

@@ -998,6 +998,216 @@
                 justify-content: center;
             }
         }
+        
+        /* Dynamic Field Selector Styles */
+        .dynamic-field-selector {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .field-section {
+            margin-bottom: 20px;
+        }
+        
+        .field-section-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 0.9em;
+        }
+        
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 8px;
+        }
+        
+        .field-option {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .field-option:hover {
+            background: #e9ecef;
+        }
+        
+        .field-option.available {
+            opacity: 1;
+        }
+        
+        .field-option.unavailable {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        
+        .field-option input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .field-label {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .field-badge {
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        /* Common fields - blue theme */
+        .field-option.common .field-badge {
+            background: #cce5ff;
+            color: #0066cc;
+            border: 1px solid #99ccff;
+        }
+        
+        .field-option.common {
+            background: rgba(204, 229, 255, 0.1);
+            border-left: 3px solid #0066cc;
+        }
+        
+        /* Platform-exclusive fields - distinct colors per platform */
+        .field-option.platform-youtube .field-badge {
+            background: #ffcccc;
+            color: #cc0000;
+            border: 1px solid #ff6666;
+        }
+        
+        .field-option.platform-youtube {
+            background: rgba(255, 204, 204, 0.1);
+            border-left: 3px solid #ff0000;
+        }
+        
+        .field-option.platform-bilibili .field-badge {
+            background: #cce6ff;
+            color: #0066cc;
+            border: 1px solid #66b3ff;
+        }
+        
+        .field-option.platform-bilibili {
+            background: rgba(204, 230, 255, 0.1);
+            border-left: 3px solid #00a1d6;
+        }
+        
+        .field-option.platform-niconico .field-badge {
+            background: #ffe6cc;
+            color: #cc6600;
+            border: 1px solid #ff9966;
+        }
+        
+        .field-option.platform-niconico {
+            background: rgba(255, 230, 204, 0.1);
+            border-left: 3px solid #ff6600;
+        }
+        
+        /* Message type fields - green theme */
+        .field-option.message-type .field-badge {
+            background: #ccffcc;
+            color: #006600;
+            border: 1px solid #66cc66;
+        }
+        
+        .field-option.message-type {
+            background: rgba(204, 255, 204, 0.1);
+            border-left: 3px solid #28a745;
+        }
+        
+        .platform-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        
+        .platform-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .platform-icon.youtube {
+            background: #ff0000;
+        }
+        
+        .platform-icon.bilibili {
+            background: #00a1d6;
+        }
+        
+        .platform-icon.niconico {
+            background: #ff6600;
+        }
+        
+        .field-help-text {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        
+        .no-fields-message {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .field-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .legend-color.common {
+            background: #0066cc;
+        }
+        
+        .legend-color.youtube {
+            background: #ff0000;
+        }
+        
+        .legend-color.bilibili {
+            background: #00a1d6;
+        }
+        
+        .legend-color.niconico {
+            background: #ff6600;
+        }
+        
+        .legend-color.message-type {
+            background: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -1104,58 +1314,37 @@
 
                     <div class="form-group">
                         <label>Fields to Include in OSC Message</label>
-                        <div id="field-selector" class="field-selector">
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-name" value="name" checked>
-                                <label for="field-name">User Name</label>
+                        <div class="dynamic-field-selector">
+                            <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 10px 0; color: #1976d2;"><i class="fas fa-info-circle"></i> Dynamic Field Selection</h4>
+                                <p style="margin: 0; color: #0d47a1; font-size: 13px;">Available fields are automatically filtered based on the platforms selected in your condition groups. Platform-exclusive fields are highlighted with color coding.</p>
                             </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-comment" value="comment" checked>
-                                <label for="field-comment">Message Text</label>
+                            
+                            <div id="field-legend" class="field-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color common"></div>
+                                    <span>Common (All Platforms)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color youtube"></div>
+                                    <span>YouTube Only</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color bilibili"></div>
+                                    <span>Bilibili Only</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color niconico"></div>
+                                    <span>Niconico Only</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color message-type"></div>
+                                    <span>Message Type Specific</span>
+                                </div>
                             </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-timestamp" value="timestamp">
-                                <label for="field-timestamp">Timestamp</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-price" value="price">
-                                <label for="field-price">Gift Price</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-giftName" value="giftName">
-                                <label for="field-giftName">Gift Name</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-userLevel" value="userLevel">
-                                <label for="field-userLevel">User Level</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-guardLevel" value="guardLevel">
-                                <label for="field-guardLevel">Guard Level</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-profileImageUrl" value="profileImageUrl">
-                                <label for="field-profileImageUrl">Profile Image URL</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-type" value="type">
-                                <label for="field-type">Message Type</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-hasGift" value="hasGift">
-                                <label for="field-hasGift">Has Gift</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-isVip" value="isVip">
-                                <label for="field-isVip">VIP Status</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-isMember" value="isMember">
-                                <label for="field-isMember">Member Status</label>
-                            </div>
-                            <div class="field-checkbox">
-                                <input type="checkbox" id="field-isModerator" value="isModerator">
-                                <label for="field-isModerator">Moderator Status</label>
+                            
+                            <div id="dynamic-field-selector-content">
+                                <!-- Dynamic field content will be rendered here -->
                             </div>
                         </div>
                     </div>
