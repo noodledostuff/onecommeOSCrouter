@@ -827,6 +827,177 @@
             padding: 4px;
             border-radius: 3px;
         }
+        
+        /* Enhanced Rule Builder Styles */
+        .condition-group-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .condition-group-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        
+        .condition-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .source-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .source-option {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .source-option:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .source-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .source-option input[type="radio"] {
+            margin-right: 8px;
+        }
+        
+        .source-icon {
+            margin-right: 8px;
+            width: 16px;
+        }
+        
+        .message-type-selector {
+            margin: 15px 0;
+        }
+        
+        .message-type-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .message-type-option {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .message-type-option:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .message-type-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .conditions-list {
+            margin: 15px 0;
+        }
+        
+        .single-condition {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .condition-logic-inline {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .group-remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .group-remove-btn:hover {
+            background: #e53e3e;
+            transform: scale(1.1);
+        }
+        
+        .group-summary {
+            font-size: 14px;
+            color: #4a5568;
+            font-style: italic;
+            margin-top: 10px;
+            padding: 10px;
+            background: #edf2f7;
+            border-radius: 4px;
+        }
+        
+        .empty-conditions {
+            text-align: center;
+            padding: 30px;
+            color: #a0aec0;
+            background: #f7fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 6px;
+        }
+        
+        @media (max-width: 768px) {
+            .source-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .single-condition {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .message-type-options {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -895,62 +1066,34 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Conditions</label>
-                        <div id="conditions-container" class="conditions-builder">
-                            <div class="condition-group">
-                                <div class="condition-row">
-                                    <select class="form-control condition-field">
-                                        <option value="">Select Field</option>
-                                        <option value="type">Message Type</option>
-                                        <option value="hasGift">Has Gift</option>
-                                        <option value="price">Gift Price</option>
-                                        <option value="name">User Name</option>
-                                        <option value="comment">Message Text</option>
-                                        <option value="userLevel">User Level (Bilibili)</option>
-                                        <option value="guardLevel">Guard Level (Bilibili)</option>
-                                        <option value="isVip">VIP Status (Bilibili)</option>
-                                        <option value="isMember">Member Status (YouTube)</option>
-                                        <option value="isModerator">Moderator Status</option>
-                                        <option value="giftName">Gift Name</option>
-                                    </select>
-                                    <select class="form-control condition-operator">
-                                        <option value="equals">Equals</option>
-                                        <option value="not_equals">Not Equals</option>
-                                        <option value="greater_than">Greater Than</option>
-                                        <option value="greater_than_or_equal">Greater Than or Equal</option>
-                                        <option value="less_than">Less Than</option>
-                                        <option value="less_than_or_equal">Less Than or Equal</option>
-                                        <option value="contains">Contains</option>
-                                        <option value="not_contains">Does Not Contain</option>
-                                        <option value="starts_with">Starts With</option>
-                                        <option value="ends_with">Ends With</option>
-                                        <option value="regex">Regular Expression</option>
-                                    </select>
-                                    <input type="text" class="form-control condition-value" placeholder="Value">
-                                    <select class="form-control condition-type">
-                                        <option value="string">Text</option>
-                                        <option value="number">Number</option>
-                                        <option value="boolean">True/False</option>
-                                    </select>
-                                    <button type="button" class="btn btn-danger" onclick="removeCondition(this)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                        <label>Rule Conditions</label>
+                        <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 15px 0;">
+                            <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                                <h4 style="margin: 0 0 10px 0; color: #1976d2;"><i class="fas fa-lightbulb"></i> Enhanced Rule Builder</h4>
+                                <p style="margin: 0; color: #0d47a1;">Create complex rules like "YouTube with SuperChat > $20 OR Bilibili with gift > ¥50". Each condition group targets a specific platform with its own criteria.</p>
                             </div>
-                            <button type="button" class="btn btn-secondary" onclick="addCondition()">
-                                <i class="fas fa-plus"></i> Add Condition
-                            </button>
-                        </div>
-
-                        <div class="logic-selector">
-                            <label>
-                                <input type="radio" name="condition-logic" value="AND" checked> 
-                                <strong>AND</strong> (All conditions must be true)
-                            </label>
-                            <label>
-                                <input type="radio" name="condition-logic" value="OR"> 
-                                <strong>OR</strong> (Any condition can be true)
-                            </label>
+                            
+                            <div id="condition-groups-container">
+                                <!-- Condition groups will be dynamically added here -->
+                            </div>
+                            
+                            <div style="margin: 20px 0; text-align: center;">
+                                <button type="button" class="btn btn-primary" onclick="app.addConditionGroup()">
+                                    <i class="fas fa-plus"></i> Add Condition Group
+                                </button>
+                            </div>
+                            
+                            <div id="group-logic-selector" class="logic-selector" style="display: none; margin-top: 20px; padding: 15px; background: white; border-radius: 6px;">
+                                <h5 style="margin-bottom: 10px;"><i class="fas fa-code-branch"></i> Logic Between Groups</h5>
+                                <label style="margin-right: 20px;">
+                                    <input type="radio" name="group-logic" value="OR" checked> 
+                                    <strong>OR</strong> - Any group can match (recommended)
+                                </label>
+                                <label>
+                                    <input type="radio" name="group-logic" value="AND"> 
+                                    <strong>AND</strong> - All groups must match
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -1254,6 +1397,7 @@
         </div>
     </div>
 
+    <script src="source-schemas.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

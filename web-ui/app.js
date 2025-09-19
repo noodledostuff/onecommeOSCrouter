@@ -63,6 +63,8 @@ class RoutingUI {
         // Load data for specific tabs
         if (tabName === 'rules') {
             this.refreshRules();
+        } else if (tabName === 'create') {
+            this.initializeCreateRuleTab();
         } else if (tabName === 'settings') {
             this.loadConfigurationUI();
         } else if (tabName === 'logs') {
@@ -351,17 +353,420 @@ class RoutingUI {
         const description = document.getElementById('rule-description').value.trim();
         const endpoint = document.getElementById('action-endpoint').value.trim();
         const blockDefault = document.getElementById('block-default').checked;
-        const conditionLogic = document.querySelector('input[name="condition-logic"]:checked').value;
         
-        // Build conditions
-        const conditions = [];
-        document.querySelectorAll('.condition-group').forEach(group => {
-            const field = group.querySelector('.condition-field').value;
-            const operator = group.querySelector('.condition-operator').value;
-            const value = group.querySelector('.condition-value').value;
-            const dataType = group.querySelector('.condition-type').value;
+        // Check if we have condition groups (new format) or fall back to legacy
+        const conditionGroupsContainer = document.getElementById('condition-groups-container');
+        const conditionGroups = conditionGroupsContainer.querySelectorAll('.condition-group-card');
+        
+        if (conditionGroups.length > 0) {
+            // New enhanced format with condition groups
+            const groupLogic = document.querySelector('input[name="group-logic"]:checked')?.value || 'OR';
+            const conditionGroupsData = [];
             
-            if (field && operator) {
+            conditionGroups.forEach(groupCard => {
+                const groupData = this.extractConditionGroup(groupCard);
+                if (groupData) {
+                    conditionGroupsData.push(groupData);
+                }
+            });
+            
+            // Build selected fields
+            const selectedFields = [];
+            document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedFields.push(checkbox.value);
+            });
+            
+            return {
+                name,
+                description,
+                conditionGroups: conditionGroupsData,
+                groupLogic,
+                actions: [{
+                    type: 'route_to_endpoint',
+                    endpoint,
+                    fields: selectedFields
+                }],
+                enabled: true,
+                blockDefault
+            };
+        } else {
+            // Legacy format fallback
+            const conditionLogic = document.querySelector('input[name="condition-logic"]:checked')?.value || 'AND';
+            
+            // Build conditions
+            const conditions = [];
+            document.querySelectorAll('.condition-group').forEach(group => {
+                const field = group.querySelector('.condition-field').value;
+                const operator = group.querySelector('.condition-operator').value;
+                const value = group.querySelector('.condition-value').value;
+                const dataType = group.querySelector('.condition-type').value;
+                
+                if (field && operator) {
+                    let processedValue = value;
+                    if (dataType === 'number') {
+                        processedValue = parseFloat(value) || 0;
+                    } else if (dataType === 'boolean') {
+                        processedValue = value.toLowerCase() === 'true' || value === '1';
+                    }
+                    
+                    conditions.push({
+                        field,
+                        operator,
+                        value: processedValue,
+                        dataType
+                    });
+                }
+            });
+            
+            // Build selected fields
+            const selectedFields = [];
+            document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedFields.push(checkbox.value);
+            });
+            
+            return {
+                name,
+                description,
+                conditions,
+                conditionLogic,
+                actions: [{
+                    type: 'route_to_endpoint',
+                    endpoint,
+                    fields: selectedFields
+                }],
+                enabled: true,
+                blockDefault
+            };
+        }
+    }
+
+    // Enhanced Rule Builder Methods
+    addConditionGroup() {
+        const container = document.getElementById('condition-groups-container');
+        const groupId = 'group-' + Date.now();
+        
+        const groupCard = document.createElement('div');
+        groupCard.className = 'condition-group-card';
+        groupCard.dataset.groupId = groupId;
+        
+        groupCard.innerHTML = this.generateConditionGroupHTML(groupId);
+        container.appendChild(groupCard);
+        
+        // Show group logic selector if more than one group
+        this.updateGroupLogicVisibility();
+        
+        // Initialize the first source as selected
+        const firstSource = groupCard.querySelector('.source-option input[type="radio"]');
+        if (firstSource) {
+            firstSource.checked = true;
+            this.onSourceChange(firstSource.value, groupId);
+        }
+    }
+    
+    generateConditionGroupHTML(groupId) {
+        const sources = SourceSchemaHelpers.getAllSources();
+        
+        return `
+            <button type="button" class="group-remove-btn" onclick="app.removeConditionGroup('${groupId}')">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="condition-group-header">
+                <h5 style="margin: 0;"><i class="fas fa-layer-group"></i> Condition Group</h5>
+            </div>
+            
+            <div class="source-selector">
+                <label style="font-weight: bold; margin-right: 10px;">Platform:</label>
+                ${sources.map(source => {
+                    const schema = SourceSchemas[source];
+                    return `
+                        <label class="source-option">
+                            <input type="radio" name="source-${groupId}" value="${source}" onchange="app.onSourceChange('${source}', '${groupId}')">
+                            <i class="${schema.icon} source-icon" style="color: ${schema.color};"></i>
+                            ${schema.name}
+                        </label>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div id="message-type-${groupId}" class="message-type-selector" style="display: none;">
+                <label style="font-weight: bold;">Message Type:</label>
+                <div class="message-type-options" id="message-type-options-${groupId}">
+                    <!-- Message type options will be populated here -->
+                </div>
+            </div>
+            
+            <div id="conditions-${groupId}" class="conditions-list">
+                <div class="empty-conditions">
+                    <i class="fas fa-filter" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Select a platform to add conditions</p>
+                </div>
+            </div>
+            
+            <div id="group-summary-${groupId}" class="group-summary" style="display: none;"></div>
+        `;
+    }
+    
+    onSourceChange(source, groupId) {
+        const schema = SourceSchemas[source];
+        if (!schema) return;
+        
+        // Update message type selector
+        const messageTypeContainer = document.getElementById(`message-type-${groupId}`);
+        const messageTypeOptions = document.getElementById(`message-type-options-${groupId}`);
+        
+        if (schema.messageTypes && schema.messageTypes.length > 1) {
+            messageTypeContainer.style.display = 'block';
+            messageTypeOptions.innerHTML = schema.messageTypes.map(type => `
+                <div class="message-type-option" onclick="app.onMessageTypeChange('${type}', '${groupId}')">
+                    ${type.charAt(0).toUpperCase() + type.slice(1)}
+                </div>
+            `).join('');
+            
+            // Select first message type by default
+            const firstOption = messageTypeOptions.querySelector('.message-type-option');
+            if (firstOption) {
+                firstOption.classList.add('selected');
+                this.onMessageTypeChange(schema.messageTypes[0], groupId);
+            }
+        } else {
+            messageTypeContainer.style.display = 'none';
+            this.updateConditionsForGroup(groupId, source, schema.messageTypes[0] || null);
+        }
+        
+        this.updateGroupSummary(groupId);
+    }
+    
+    onMessageTypeChange(messageType, groupId) {
+        // Update visual selection
+        const options = document.querySelectorAll(`#message-type-options-${groupId} .message-type-option`);
+        options.forEach(option => {
+            option.classList.toggle('selected', option.textContent.toLowerCase().trim() === messageType);
+        });
+        
+        // Get current source
+        const sourceInput = document.querySelector(`input[name="source-${groupId}"]:checked`);
+        if (sourceInput) {
+            this.updateConditionsForGroup(groupId, sourceInput.value, messageType);
+        }
+        
+        this.updateGroupSummary(groupId);
+    }
+    
+    updateConditionsForGroup(groupId, source, messageType) {
+        const conditionsContainer = document.getElementById(`conditions-${groupId}`);
+        const fields = SourceSchemaHelpers.getAvailableFields(source, messageType);
+        
+        conditionsContainer.innerHTML = `
+            <div style="margin-bottom: 15px;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.addConditionToGroup('${groupId}', '${source}', '${messageType}')">
+                    <i class="fas fa-plus"></i> Add Condition
+                </button>
+            </div>
+            <div id="conditions-list-${groupId}">
+                <!-- Conditions will be added here -->
+            </div>
+        `;
+        
+        // Add one condition by default
+        this.addConditionToGroup(groupId, source, messageType);
+    }
+    
+    addConditionToGroup(groupId, source, messageType) {
+        const conditionsListContainer = document.getElementById(`conditions-list-${groupId}`);
+        const conditionId = `condition-${groupId}-${Date.now()}`;
+        const fields = SourceSchemaHelpers.getAvailableFields(source, messageType);
+        
+        const conditionElement = document.createElement('div');
+        conditionElement.className = 'single-condition';
+        conditionElement.dataset.conditionId = conditionId;
+        
+        conditionElement.innerHTML = `
+            <select class="form-control" onchange="app.onFieldChange('${conditionId}', '${source}', '${messageType}')">
+                <option value="">Select Field</option>
+                ${fields.map(field => `<option value="${field.name}">${field.label}</option>`).join('')}
+            </select>
+            <select class="form-control" disabled>
+                <option value="">Select Operator</option>
+            </select>
+            <input type="text" class="form-control" placeholder="Value" disabled>
+            <span class="condition-type-display" style="font-size: 12px; color: #666;">-</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="app.removeConditionFromGroup('${conditionId}', '${groupId}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        conditionsListContainer.appendChild(conditionElement);
+        
+        // Add condition logic separator if there are multiple conditions
+        const existingConditions = conditionsListContainer.querySelectorAll('.single-condition');
+        if (existingConditions.length > 1) {
+            this.updateConditionLogicDisplay(groupId);
+        }
+        
+        this.updateGroupSummary(groupId);
+    }
+    
+    onFieldChange(conditionId, source, messageType) {
+        const conditionElement = document.querySelector(`[data-condition-id="${conditionId}"]`);
+        const fieldSelect = conditionElement.querySelector('select:first-child');
+        const operatorSelect = conditionElement.querySelector('select:nth-child(2)');
+        const valueInput = conditionElement.querySelector('input');
+        const typeDisplay = conditionElement.querySelector('.condition-type-display');
+        
+        const fieldName = fieldSelect.value;
+        if (!fieldName) {
+            operatorSelect.disabled = true;
+            valueInput.disabled = true;
+            operatorSelect.innerHTML = '<option value="">Select Operator</option>';
+            typeDisplay.textContent = '-';
+            return;
+        }
+        
+        const field = SourceSchemaHelpers.getField(source, fieldName, messageType);
+        if (!field) return;
+        
+        // Populate operators
+        operatorSelect.disabled = false;
+        operatorSelect.innerHTML = `
+            <option value="">Select Operator</option>
+            ${field.operators.map(op => `<option value="${op}">${OperatorLabels[op]}</option>`).join('')}
+        `;
+        
+        // Enable value input and show type
+        valueInput.disabled = false;
+        valueInput.placeholder = field.type === 'boolean' ? 'true/false' : `Enter ${field.type}`;
+        typeDisplay.textContent = field.type;
+        
+        // Add change listener for operator and value to update summary
+        operatorSelect.onchange = () => this.updateGroupSummary(conditionId.split('-')[1]);
+        valueInput.onchange = () => this.updateGroupSummary(conditionId.split('-')[1]);
+    }
+    
+    removeConditionFromGroup(conditionId, groupId) {
+        const conditionElement = document.querySelector(`[data-condition-id="${conditionId}"]`);
+        const conditionsListContainer = document.getElementById(`conditions-list-${groupId}`);
+        const conditionCount = conditionsListContainer.querySelectorAll('.single-condition').length;
+        
+        if (conditionCount > 1) {
+            conditionElement.remove();
+            this.updateConditionLogicDisplay(groupId);
+            this.updateGroupSummary(groupId);
+        } else {
+            this.showNotification('At least one condition is required per group', 'warning');
+        }
+    }
+    
+    updateConditionLogicDisplay(groupId) {
+        const conditionsListContainer = document.getElementById(`conditions-list-${groupId}`);
+        const conditions = conditionsListContainer.querySelectorAll('.single-condition');
+        
+        // Remove existing logic displays
+        conditionsListContainer.querySelectorAll('.condition-logic-inline').forEach(el => el.remove());
+        
+        // Add logic displays between conditions
+        conditions.forEach((condition, index) => {
+            if (index < conditions.length - 1) {
+                const logicDiv = document.createElement('div');
+                logicDiv.className = 'condition-logic-inline';
+                logicDiv.innerHTML = `
+                    <label>
+                        <input type="radio" name="condition-logic-${groupId}" value="AND" checked>
+                        AND
+                    </label>
+                    <label style="margin-left: 15px;">
+                        <input type="radio" name="condition-logic-${groupId}" value="OR">
+                        OR
+                    </label>
+                `;
+                condition.parentNode.insertBefore(logicDiv, condition.nextSibling);
+            }
+        });
+    }
+    
+    updateGroupSummary(groupId) {
+        const summaryDiv = document.getElementById(`group-summary-${groupId}`);
+        const sourceInput = document.querySelector(`input[name="source-${groupId}"]:checked`);
+        
+        if (!sourceInput) {
+            summaryDiv.style.display = 'none';
+            return;
+        }
+        
+        const source = sourceInput.value;
+        const schema = SourceSchemas[source];
+        const selectedMessageType = document.querySelector(`#message-type-options-${groupId} .message-type-option.selected`);
+        const messageType = selectedMessageType ? selectedMessageType.textContent.toLowerCase().trim() : null;
+        
+        let summary = `<strong>Platform:</strong> ${schema.name}`;
+        if (messageType) {
+            summary += ` <strong>Type:</strong> ${messageType}`;
+        }
+        
+        const conditionsListContainer = document.getElementById(`conditions-list-${groupId}`);
+        const conditions = conditionsListContainer.querySelectorAll('.single-condition');
+        const validConditions = Array.from(conditions).filter(condition => {
+            const fieldSelect = condition.querySelector('select:first-child');
+            const operatorSelect = condition.querySelector('select:nth-child(2)');
+            const valueInput = condition.querySelector('input');
+            return fieldSelect.value && operatorSelect.value && valueInput.value;
+        });
+        
+        if (validConditions.length > 0) {
+            summary += ` <strong>Conditions:</strong> ${validConditions.length} condition(s)`;
+        }
+        
+        summaryDiv.innerHTML = summary;
+        summaryDiv.style.display = 'block';
+    }
+    
+    removeConditionGroup(groupId) {
+        const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
+        const container = document.getElementById('condition-groups-container');
+        const groupCount = container.querySelectorAll('.condition-group-card').length;
+        
+        if (groupCount > 1) {
+            groupCard.remove();
+            this.updateGroupLogicVisibility();
+        } else {
+            this.showNotification('At least one condition group is required', 'warning');
+        }
+    }
+    
+    updateGroupLogicVisibility() {
+        const container = document.getElementById('condition-groups-container');
+        const groupCount = container.querySelectorAll('.condition-group-card').length;
+        const logicSelector = document.getElementById('group-logic-selector');
+        
+        logicSelector.style.display = groupCount > 1 ? 'block' : 'none';
+    }
+    
+    extractConditionGroup(groupCard) {
+        const groupId = groupCard.dataset.groupId;
+        const sourceInput = groupCard.querySelector(`input[name="source-${groupId}"]:checked`);
+        
+        if (!sourceInput) return null;
+        
+        const source = sourceInput.value;
+        const selectedMessageType = groupCard.querySelector(`#message-type-options-${groupId} .message-type-option.selected`);
+        const messageType = selectedMessageType ? selectedMessageType.textContent.toLowerCase().trim() : null;
+        
+        const conditionsListContainer = document.getElementById(`conditions-list-${groupId}`);
+        const conditionElements = conditionsListContainer.querySelectorAll('.single-condition');
+        const conditions = [];
+        
+        conditionElements.forEach(conditionElement => {
+            const fieldSelect = conditionElement.querySelector('select:first-child');
+            const operatorSelect = conditionElement.querySelector('select:nth-child(2)');
+            const valueInput = conditionElement.querySelector('input');
+            const typeDisplay = conditionElement.querySelector('.condition-type-display');
+            
+            const field = fieldSelect.value;
+            const operator = operatorSelect.value;
+            const value = valueInput.value;
+            const dataType = typeDisplay.textContent;
+            
+            if (field && operator && value) {
                 let processedValue = value;
                 if (dataType === 'number') {
                     processedValue = parseFloat(value) || 0;
@@ -378,52 +783,72 @@ class RoutingUI {
             }
         });
         
-        // Build selected fields
-        const selectedFields = [];
-        document.querySelectorAll('#field-selector input[type="checkbox"]:checked').forEach(checkbox => {
-            selectedFields.push(checkbox.value);
-        });
+        const conditionLogicInput = groupCard.querySelector(`input[name="condition-logic-${groupId}"]:checked`);
+        const conditionLogic = conditionLogicInput ? conditionLogicInput.value : 'AND';
         
         return {
-            name,
-            description,
+            source,
+            messageType,
             conditions,
-            conditionLogic,
-            actions: [{
-                type: 'route_to_endpoint',
-                endpoint,
-                fields: selectedFields
-            }],
-            enabled: true,
-            blockDefault
+            conditionLogic
         };
+    }
+
+    initializeCreateRuleTab() {
+        const container = document.getElementById('condition-groups-container');
+        
+        // Clear any existing condition groups
+        container.innerHTML = '';
+        
+        // Add initial condition group if none exist
+        if (container.querySelectorAll('.condition-group-card').length === 0) {
+            this.addConditionGroup();
+        }
     }
 
     clearForm() {
         document.getElementById('rule-form').reset();
         
-        // Reset conditions to just one
-        const container = document.getElementById('conditions-container');
-        const conditionGroups = container.querySelectorAll('.condition-group');
-        conditionGroups.forEach((group, index) => {
-            if (index > 0) group.remove();
-        });
+        // Clear condition groups (enhanced rule builder)
+        const conditionGroupsContainer = document.getElementById('condition-groups-container');
+        if (conditionGroupsContainer) {
+            conditionGroupsContainer.innerHTML = '';
+            this.addConditionGroup(); // Add one empty group
+        }
         
-        // Clear the first condition
-        const firstGroup = container.querySelector('.condition-group');
-        firstGroup.querySelector('.condition-field').value = '';
-        firstGroup.querySelector('.condition-operator').value = 'equals';
-        firstGroup.querySelector('.condition-value').value = '';
-        firstGroup.querySelector('.condition-type').value = 'string';
+        // Legacy condition clearing (for backward compatibility)
+        const legacyContainer = document.getElementById('conditions-container');
+        if (legacyContainer) {
+            const conditionGroups = legacyContainer.querySelectorAll('.condition-group');
+            conditionGroups.forEach((group, index) => {
+                if (index > 0) group.remove();
+            });
+            
+            // Clear the first condition if it exists
+            const firstGroup = legacyContainer.querySelector('.condition-group');
+            if (firstGroup) {
+                firstGroup.querySelector('.condition-field').value = '';
+                firstGroup.querySelector('.condition-operator').value = 'equals';
+                firstGroup.querySelector('.condition-value').value = '';
+                firstGroup.querySelector('.condition-type').value = 'string';
+            }
+        }
         
-        // Reset checkboxes
-        document.getElementById('field-name').checked = true;
-        document.getElementById('field-comment').checked = true;
+        // Reset field checkboxes
         document.querySelectorAll('#field-selector input[type="checkbox"]').forEach(checkbox => {
-            if (checkbox.id !== 'field-name' && checkbox.id !== 'field-comment') {
+            if (checkbox.id === 'field-name' || checkbox.id === 'field-comment') {
+                checkbox.checked = true;
+            } else {
                 checkbox.checked = false;
             }
         });
+        
+        // Reset group logic to OR
+        const groupLogicOR = document.querySelector('input[name="group-logic"][value="OR"]');
+        if (groupLogicOR) groupLogicOR.checked = true;
+        
+        // Hide group logic selector
+        this.updateGroupLogicVisibility();
     }
 
     async toggleRule(ruleId, enabled) {

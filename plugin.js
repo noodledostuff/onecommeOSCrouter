@@ -140,7 +140,7 @@ class ConfigManager {
     }
 }
 
-// Rule engine for conditional routing
+// Rule engine for conditional routing with enhanced source-specific support
 class RuleEngine {
     constructor() {
         this.rules = [];
@@ -261,9 +261,16 @@ class RuleEngine {
         return value;
     }
 
+    // Enhanced rule evaluation with support for complex condition groups
     evaluateRule(rule, message) {
         if (!rule.enabled) return false;
 
+        // Handle new complex rule format with source-specific condition groups
+        if (rule.conditionGroups && rule.conditionGroups.length > 0) {
+            return this.evaluateConditionGroups(rule.conditionGroups, rule.groupLogic || 'OR', message);
+        }
+
+        // Legacy format support
         const { conditions, conditionLogic } = rule;
         if (!conditions || conditions.length === 0) return true;
 
@@ -274,6 +281,83 @@ class RuleEngine {
         } else { // AND
             return results.every(result => result);
         }
+    }
+
+    // Evaluate condition groups with complex logic support
+    evaluateConditionGroups(conditionGroups, groupLogic, message) {
+        const groupResults = conditionGroups.map(group => this.evaluateConditionGroup(group, message));
+        
+        if (groupLogic === 'OR') {
+            return groupResults.some(result => result);
+        } else { // AND
+            return groupResults.every(result => result);
+        }
+    }
+
+    // Evaluate a single condition group (e.g., "YouTube with gift >$20")
+    evaluateConditionGroup(group, message) {
+        // Check if message source matches group source
+        if (group.source && !this.matchesSource(group.source, message)) {
+            return false;
+        }
+
+        // Check if message type matches group message type (if specified)
+        if (group.messageType && !this.matchesMessageType(group.messageType, message)) {
+            return false;
+        }
+
+        // Evaluate all conditions within the group
+        if (!group.conditions || group.conditions.length === 0) {
+            return true; // Source/type match is sufficient if no conditions specified
+        }
+
+        const conditionResults = group.conditions.map(condition => this.evaluateCondition(condition, message));
+        const logic = group.conditionLogic || 'AND';
+
+        if (logic === 'OR') {
+            return conditionResults.some(result => result);
+        } else { // AND
+            return conditionResults.every(result => result);
+        }
+    }
+
+    // Check if message matches the specified source
+    matchesSource(source, message) {
+        // Determine message source from the message type or service field
+        const messageSource = this.detectMessageSource(message);
+        return messageSource === source;
+    }
+
+    // Detect the source platform from the message
+    detectMessageSource(message) {
+        // Check for explicit type field first
+        if (message.type) {
+            if (message.type.startsWith('youtube') || message.type === 'youtube') return 'youtube';
+            if (message.type.startsWith('bilibili') || message.type === 'bilibili') return 'bilibili';
+            if (message.type.startsWith('niconico') || message.type === 'niconama') return 'niconico';
+        }
+
+        // Check for service field
+        if (message.service) {
+            return message.service.toLowerCase();
+        }
+
+        // Check for platform-specific fields as fallback
+        if (message.userLevel !== undefined || message.guardLevel !== undefined) return 'bilibili';
+        if (message.isMember !== undefined) return 'youtube';
+        
+        return 'unknown';
+    }
+
+    // Check if message matches the specified message type
+    matchesMessageType(messageType, message) {
+        if (messageType === 'gift' || messageType === 'superchat') {
+            return message.hasGift === true;
+        }
+        if (messageType === 'comment') {
+            return message.hasGift !== true; // Comments are messages without gifts
+        }
+        return true;
     }
 
     processMessage(message) {
