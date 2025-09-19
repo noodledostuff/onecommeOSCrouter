@@ -1,6 +1,6 @@
 # OneComme OSC Router
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/your-username/onecommeOSCrouter)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/noodledostuff/onecommeOSCrouter)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org)
 
@@ -23,7 +23,7 @@ An enhanced OneComme OSC plugin that adds **conditional message routing** with a
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/onecommeOSCrouter.git
+git clone https://github.com/noodledostuff/onecommeOSCrouter.git
 cd onecommeOSCrouter
 
 # Install dependencies
@@ -191,8 +191,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 📖 Documentation: [ENHANCED-README.md](ENHANCED-README.md)
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/onecommeOSCrouter/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/onecommeOSCrouter/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/noodledostuff/onecommeOSCrouter/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/noodledostuff/onecommeOSCrouter/discussions)
 
 ---
 
