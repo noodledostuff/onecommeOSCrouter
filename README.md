@@ -1,195 +1,576 @@
-# OneComme OSC Router
+# OneComme OSC Router Plugin
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/noodledostuff/onecommeOSCrouter)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org)
+**Transform your OneComme chat messages into powerful OSC data streams for VRChat, OBS, TouchDesigner, and other creative applications**
 
-An enhanced OneComme OSC plugin that adds **conditional message routing** with a web-based configuration interface. Route different types of live streaming messages to specific OSC endpoints based on customizable criteria like gift amount, platform, user status, and more.
+The OneComme OSC Router is a comprehensive plugin that bridges the gap between OneComme's multi-platform chat capture and OSC-enabled applications. It intelligently processes chat messages from YouTube, Bilibili, and Niconico, transforming them into structured OSC messages with sophisticated routing capabilities.
 
-## ✨ Key Features
-
-- 🎯 **Conditional Routing**: Create custom rules to route messages based on conditions
-- 🌐 **Web Configuration UI**: Easy-to-use browser interface for rule management  
-- 📋 **Rule Templates**: Pre-configured templates for common scenarios
-- 🧪 **Real-time Testing**: Test your rules against sample messages
-- 🔧 **Field Filtering**: Choose which message fields to include in OSC messages
-- 💾 **Rule Persistence**: Configuration automatically saved to JSON
-- 🔄 **Backward Compatible**: Works with existing OneComme OSC setups
-- 🚀 **Multi-Platform**: YouTube, Bilibili, Niconico support
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/noodledostuff/onecommeOSCrouter.git
-cd onecommeOSCrouter
-
-# Install dependencies
-npm install
-
-# Run the router
-npm start
-# or
-npm run dev
-```
-
-### Access the Web Interface
-
-Open your browser and go to `http://localhost:19101` to access the configuration interface.
-
-### OSC Output
-
-OSC messages are sent to `127.0.0.1:19100` (configurable).
-
-## 📖 Usage
-
-### Basic Setup
-
-1. **Start the router**: Run `npm start` or `npm run dev`
-2. **Configure rules**: Open `http://localhost:19101` in your browser
-3. **Create routing rules**: Use the web interface to set up conditional routing
-4. **Test your setup**: Use the built-in testing tab to validate rules
-
-### Example Rules
-
-- **High-Value Gifts**: Route donations over $10 to special endpoints
-- **Platform Separation**: Send Bilibili messages to different handlers
-- **VIP Priority**: Route messages from premium users to priority queues
-- **Content Filtering**: Route messages containing specific keywords
-
-## 🎯 OSC Endpoints
-
-### Default Endpoints
-- `/onecomme/youtube` - YouTube comments
-- `/onecomme/youtube-superchat` - YouTube Super Chats
-- `/onecomme/bilibili-comment` - Bilibili comments  
-- `/onecomme/bilibili-gift` - Bilibili gifts
-- `/onecomme/niconama` - Niconico comments
-- `/onecomme/niconama-gift` - Niconico gifts
-- `/onecomme/common` - All messages in unified format
-
-### Custom Endpoints
-Create any custom endpoint in your rules:
-- `/onecomme/high-value-gifts`
-- `/onecomme/vip-messages`
-- `/onecomme/platform-specific`
-- And more...
-
-## 🛠 Configuration
-
-### Web Interface Tabs
-
-1. **Routing Rules**: View and manage active rules
-2. **Create Rule**: Build new conditional routing rules  
-3. **Templates**: Quick-start with pre-configured rule templates
-4. **Test Rules**: Validate rules against sample messages
-
-### Rule Structure
-
-Rules consist of:
-- **Conditions**: When the rule should apply (field, operator, value)
-- **Actions**: What to do when conditions match (route to endpoint, filter fields)
-- **Logic**: AND/OR combinations for multiple conditions
-- **Options**: Enable/disable, block default routing
-
-## 📁 Project Structure
-
-```
-onecommeOSCrouter/
-├── plugin.js             # Main OSC router plugin with web UI
-├── test-plugin.js        # Test script
-├── routing-rules.json    # Rule configuration file
-├── package.json          # Project configuration
-├── impl/                 # Platform implementations
-│   ├── bilibili/        # Bilibili message handlers
-│   ├── youtube/         # YouTube message handlers  
-│   └── niconico.js      # Niconico message handlers
-├── web-ui/              # Web configuration interface
-│   ├── index.html       # Main UI interface
-│   └── app.js          # Frontend JavaScript
-├── README.md            # This file
-├── ENHANCED-README.md   # Detailed documentation
-└── LICENSE             # MIT License
-```
-
-## 🧪 Testing
-
-```bash
-# Run test script
-npm test
-
-# Run in development mode
-npm run dev
-```
-
-The test script will:
-- Start the router with sample rules
-- Process example messages from all platforms
-- Show routing decisions in console
-- Keep web UI running for interactive testing
-
-## 🔧 Development
-
-### Prerequisites
-- Node.js 16.0.0 or higher
-- npm or yarn
-
-### Local Development
-```bash
-# Install dependencies
-npm install
-
-# Start in development mode  
-npm run dev
-
-# Access web UI
-open http://localhost:19101
-```
-
-### API Endpoints
-
-The router exposes REST API endpoints for rule management:
-
-- `GET /api/rules` - Get all rules
-- `POST /api/rules` - Create new rule  
-- `PUT /api/rules/:id` - Update rule
-- `DELETE /api/rules/:id` - Delete rule
-- `GET /api/templates` - Get rule templates
-- `POST /api/rules/test` - Test rule against message
-
-## 📚 Documentation
-
-- [ENHANCED-README.md](ENHANCED-README.md) - Comprehensive documentation
-- [Web UI Guide](ENHANCED-README.md#web-ui-guide) - Interface walkthrough
-- [Rule Examples](ENHANCED-README.md#rule-examples) - Configuration examples
-- [API Reference](ENHANCED-README.md#api-reference) - REST API documentation
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Virtual Cast, Inc.](https://virtualcast.jp) - Original OneComme OSC Plugin
-- [OneComme](https://onecomme.com) - Live streaming comment integration platform
-- The streaming community for feedback and feature requests
-
-## 📞 Support
-
-- 📖 Documentation: [ENHANCED-README.md](ENHANCED-README.md)
-- 🐛 Issues: [GitHub Issues](https://github.com/noodledostuff/onecommeOSCrouter/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/noodledostuff/onecommeOSCrouter/discussions)
+> ⚠️ **Important**: This is a plugin specifically designed for OneComme. It cannot be used as a standalone application and requires OneComme to be installed and running.
 
 ---
 
-**Happy Streaming!** 🎉
+## 🎯 What This Plugin Does
+
+The OSC Router acts as an intelligent middleware layer that:
+
+- **Captures** all chat messages processed by OneComme from supported platforms
+- **Processes** messages through customizable filtering and routing rules
+- **Transforms** chat data into structured OSC messages with JSON payloads
+- **Routes** messages to different OSC endpoints based on your custom logic
+- **Monitors** message flow with real-time debugging and analytics
+
+### Supported OneComme Platforms
+
+| Platform | Message Types | Special Features |
+|----------|---------------|------------------|
+| **YouTube** | Comments, Super Chats, Memberships | Amount detection, currency handling, membership tiers |
+| **Bilibili** | Comments, Gifts, Guard status | Coin amounts, user levels, VIP detection |
+| **Niconico** | Comments, Premium users | Premium user detection, timestamp handling |
+
+---
+
+## ✨ Key Features
+
+### 🎛️ Advanced Message Routing
+- **Multi-Condition Logic**: Create complex rules with AND/OR logic chains
+- **Platform-Specific Filtering**: Route based on platform, user status, message content, or monetary values
+- **Endpoint Customization**: Send different message types to different OSC addresses
+- **Real-Time Processing**: Zero-latency message transformation and routing
+
+### 🖥️ Professional Web Interface
+- **Intuitive Dashboard**: Clean, tabbed interface accessible at `http://localhost:19101`
+- **Live Message Monitor**: Real-time view of incoming and outgoing OSC messages
+- **Rule Builder**: Visual rule creation with condition testing
+- **Configuration Management**: Export/import settings for easy backup and sharing
+
+### 💾 Intelligent Persistence
+- **Auto-Save Everything**: Settings, rules, and UI preferences automatically saved
+- **Session Continuity**: Remembers your last active tab and form drafts
+- **Backup System**: Automatic configuration backups prevent data loss
+- **Migration Support**: Seamless updates with configuration versioning
+
+### 🔧 Developer-Friendly Architecture
+- **RESTful API**: Complete HTTP API for programmatic control
+- **Extensible Design**: Platform handlers can be easily extended
+- **Comprehensive Logging**: Detailed debug output and message tracking
+- **Test Suite**: Built-in tests for configuration and OSC reliability
+
+---
+
+## 🚀 OneComme Integration Guide
+
+### Prerequisites
+- **OneComme** installed and configured for your streaming platforms
+- **Node.js 16.0.0+** (usually bundled with OneComme plugins)
+- **OSC-enabled application** (VRChat, OBS, TouchDesigner, etc.)
+
+### Installation in OneComme
+
+1. **Download the Plugin**
+   - Clone or download this repository to your OneComme plugins directory
+   - Ensure all files are in a folder named `onecommeOSCrouter`
+   - All required dependencies are included with the plugin
+
+2. **Enable in OneComme**
+   - Restart OneComme to detect the new plugin
+   - Navigate to OneComme's plugin settings
+   - Enable "OneComme OSC Router"
+
+3. **Verify Installation**
+   - Check OneComme's console for plugin load messages
+   - Visit `http://localhost:19101` to access the web interface
+   - Ensure no error messages appear during startup
+
+---
+
+## ⚙️ Configuration & Setup
+
+### Initial Configuration
+
+When first loaded, the plugin creates a default configuration optimized for common use cases:
+
+**Default OSC Settings:**
+- **Host**: `127.0.0.1` (local machine)
+- **Port**: `19100` (standard VRChat OSC port)
+- **Web Interface**: `http://localhost:19101`
+
+**Default Message Routes:**
+- `/onecomme/youtube/comment` → YouTube comments
+- `/onecomme/youtube/superchat` → YouTube Super Chats
+- `/onecomme/bilibili/comment` → Bilibili comments
+- `/onecomme/bilibili/gift` → Bilibili gifts
+- `/onecomme/niconico/comment` → Niconico comments
+
+### Web Interface Overview
+
+Access the configuration interface at `http://localhost:19101`:
+
+#### 📊 **Overview Tab**
+- Real-time message statistics
+- Connection status indicators
+- Quick access to common settings
+- System health monitoring
+
+#### 📜 **Rules Tab**
+- Create and manage routing rules
+- Test rules with sample messages
+- Import/export rule sets
+- Rule priority management
+
+#### 📋 **Logs Tab**
+- Live message monitor showing incoming/outgoing data
+- Message filtering and search
+- Export logs for debugging
+- Clear log history
+
+#### ⚙️ **Settings Tab**
+- OSC output configuration
+- Web interface preferences
+- Advanced connection settings
+- Configuration backup/restore
+
+---
+
+## 🎨 Creating Custom Routing Rules
+
+The rule system enables sophisticated message processing logic. Here are comprehensive examples:
+
+### Example 1: High-Value Donation Alerts
+
+**Goal**: Route significant donations to a special alert endpoint
+
+```json
+{
+  "name": "High Value Donations",
+  "description": "Route big donations to alert system",
+  "endpoint": "/alerts/bigdonation",
+  "conditions": {
+    "logic": "OR",
+    "groups": [
+      {
+        "logic": "AND",
+        "conditions": [
+          {"field": "service", "operator": "equals", "value": "youtube"},
+          {"field": "type", "operator": "equals", "value": "superchat"},
+          {"field": "amount", "operator": "greater_than", "value": "20"}
+        ]
+      },
+      {
+        "logic": "AND",
+        "conditions": [
+          {"field": "service", "operator": "equals", "value": "bilibili"},
+          {"field": "type", "operator": "equals", "value": "gift"},
+          {"field": "coins", "operator": "greater_than", "value": "100"}
+        ]
+      }
+    ]
+  },
+  "fieldMappings": {
+    "username": "name",
+    "message": "comment",
+    "value": ["amount", "coins"],
+    "currency": "currency",
+    "platform": "service"
+  }
+}
+```
+
+### Example 2: VIP User Routing
+
+**Goal**: Separate VIP users (members, guards, premium) to special endpoints
+
+```json
+{
+  "name": "VIP Users",
+  "description": "Route VIP user messages separately",
+  "endpoint": "/chat/vip",
+  "conditions": {
+    "logic": "OR",
+    "groups": [
+      {"field": "is_member", "operator": "equals", "value": true},
+      {"field": "is_guard", "operator": "equals", "value": true},
+      {"field": "is_premium", "operator": "equals", "value": true}
+    ]
+  },
+  "fieldMappings": {
+    "user": "name",
+    "message": "comment",
+    "vip_type": "user_type",
+    "platform": "service"
+  }
+}
+```
+
+### Example 3: Content Filtering
+
+**Goal**: Filter inappropriate content and route clean messages
+
+```json
+{
+  "name": "Content Filter",
+  "description": "Block inappropriate content",
+  "endpoint": "/chat/filtered",
+  "conditions": {
+    "logic": "NOT",
+    "groups": [
+      {
+        "logic": "OR",
+        "conditions": [
+          {"field": "comment", "operator": "contains", "value": "spam"},
+          {"field": "comment", "operator": "contains", "value": "inappropriate"},
+          {"field": "comment", "operator": "regex", "value": "\\b(bad|word)\\b"}
+        ]
+      }
+    ]
+  },
+  "fieldMappings": {
+    "clean_message": "comment",
+    "user": "name",
+    "timestamp": "timestamp"
+  }
+}
+```
+
+### Available Condition Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `equals` | Exact match | `"service" equals "youtube"` |
+| `not_equals` | Not equal | `"type" not_equals "comment"` |
+| `contains` | String contains | `"comment" contains "hello"` |
+| `not_contains` | String doesn't contain | `"comment" not_contains "spam"` |
+| `greater_than` | Numeric comparison | `"amount" greater_than "10"` |
+| `less_than` | Numeric comparison | `"amount" less_than "5"` |
+| `regex` | Regular expression | `"comment" regex "\\d+"` |
+| `exists` | Field has value | `"amount" exists` |
+| `not_exists` | Field is empty | `"gift_name" not_exists` |
+
+---
+
+## 📡 OSC Message Format
+
+All OSC messages sent by the plugin contain structured JSON data:
+
+### Standard Message Structure
+
+```json
+{
+  "timestamp": "2024-09-20T08:30:01.123Z",
+  "service": "youtube",
+  "type": "superchat",
+  "user": {
+    "id": "UC1234567890",
+    "name": "StreamerFan123",
+    "display_name": "StreamerFan123"
+  },
+  "message": {
+    "content": "Great stream! Keep it up!",
+    "id": "msg_12345"
+  },
+  "platform_data": {
+    "amount": "5.00",
+    "currency": "USD",
+    "is_member": true,
+    "membership_months": 6
+  },
+  "processing": {
+    "rule_matched": "High Value Donations",
+    "endpoint": "/alerts/bigdonation",
+    "processed_at": "2024-09-20T08:30:01.125Z"
+  }
+}
+```
+
+### Platform-Specific Fields
+
+#### YouTube Messages
+```json
+{
+  "amount": "10.00",
+  "currency": "USD",
+  "is_member": true,
+  "membership_months": 12,
+  "channel_id": "UC1234567890",
+  "video_id": "dQw4w9WgXcQ"
+}
+```
+
+#### Bilibili Messages
+```json
+{
+  "coins": 100,
+  "gift_name": "Cola",
+  "gift_id": 30607,
+  "is_guard": false,
+  "user_level": 15,
+  "room_id": 12345
+}
+```
+
+#### Niconico Messages
+```json
+{
+  "is_premium": true,
+  "user_id": "12345",
+  "comment_no": 150,
+  "live_id": "lv12345"
+}
+```
+
+---
+
+## 🔧 Advanced Configuration
+
+### Configuration Files
+
+All plugin settings are stored locally in the plugin directory:
+
+- **`config.json`** - Main configuration with all settings
+- **`routing-rules.json`** - Your custom routing rules
+- **`config.backup.json`** - Automatic backup created on changes
+
+### Environment Variables
+
+Override default settings using environment variables:
+
+```bash
+# Change OSC output port
+OSC_PORT=9000
+
+# Change web interface port
+WEB_UI_PORT=8080
+
+# Enable debug logging
+DEBUG_LOGGING=true
+```
+
+### Advanced Settings
+
+Access advanced settings through the web interface:
+
+**Connection Settings:**
+- OSC reconnection intervals
+- Maximum reconnection attempts
+- Connection health check frequency
+
+**Performance Settings:**
+- Message queue size
+- Processing thread count
+- Memory usage limits
+
+**Logging Settings:**
+- Log retention period
+- Log file rotation
+- Debug output levels
+
+---
+
+## 🧪 Testing & Debugging
+
+### Built-in Test Suite
+
+The plugin includes comprehensive testing tools:
+
+#### Configuration Test
+Verify configuration system reliability:
+```bash
+node tests/test-config-persistence.js
+```
+**Tests**: File I/O, setting validation, backup creation, migration logic
+
+#### OSC Reliability Test
+Ensure OSC message delivery:
+```bash
+node tests/test-osc-reliability.js
+```
+**Tests**: Message sending, Unicode support, error handling, concurrent delivery
+
+#### Real-Time Monitor
+Watch OSC messages in real-time:
+```bash
+node tests/osc-monitor.js
+```
+**Features**: Live message display, statistics tracking, log export
+
+### Troubleshooting Common Issues
+
+#### Messages Not Appearing in Target Application
+
+**Check OSC Settings:**
+1. Verify target application is listening on the correct port
+2. Confirm IP address (usually `127.0.0.1` for local)
+3. Check firewall settings for UDP traffic
+
+**Debug Steps:**
+1. Run `node tests/osc-monitor.js` to verify messages are sent
+2. Check OneComme console for error messages
+3. Verify rules are matching expected messages
+
+#### Rules Not Triggering
+
+**Validation Steps:**
+1. Use the rule tester in the web interface
+2. Check condition logic (AND vs OR)
+3. Verify field names match incoming message structure
+4. Test with simplified conditions first
+
+#### Configuration Not Saving
+
+**File Permission Issues:**
+1. Check write permissions in plugin directory
+2. Ensure OneComme has file system access
+3. Look for disk space issues
+
+#### Web Interface Not Loading
+
+**Connection Issues:**
+1. Verify port 19101 is available
+2. Check for other applications using the port
+3. Try accessing from different browser
+4. Check OneComme's console for web server errors
+
+---
+
+## 🏗️ Technical Architecture
+
+### System Components
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   OneComme      │───▶│  OSC Router      │───▶│  Target App     │
+│  (Chat Source)  │    │   Plugin         │    │  (VRChat/OBS)   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                        ┌──────────────────┐
+                        │  Web Interface   │
+                        │  (localhost:19101│
+                        └──────────────────┘
+```
+
+### Core Components
+
+**Message Processor**: Receives messages from OneComme's event system
+**Rule Engine**: Evaluates conditions and determines routing
+**OSC Client**: Sends formatted messages to target applications
+**Web Server**: Provides configuration interface and real-time monitoring
+**Config Manager**: Handles persistent storage and backup
+
+### API Endpoints
+
+The plugin exposes a RESTful API for programmatic control:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/rules` | List all routing rules |
+| POST | `/api/rules` | Create new routing rule |
+| PUT | `/api/rules/:id` | Update existing rule |
+| DELETE | `/api/rules/:id` | Delete rule |
+| GET | `/api/config/full` | Get complete configuration |
+| PUT | `/api/config/full` | Update complete configuration |
+| GET | `/api/config/ui` | Get UI preferences |
+| PUT | `/api/config/ui` | Update UI preferences |
+| GET | `/api/logs` | Get recent message logs |
+| DELETE | `/api/logs` | Clear message logs |
+| POST | `/api/test/rule` | Test rule against sample message |
+| POST | `/api/export` | Export configuration |
+| POST | `/api/import` | Import configuration |
+| GET | `/api/status` | Get system status |
+
+---
+
+## 🤝 Contributing to the Project
+
+### Development Environment Setup
+
+> **Note**: These steps are only required for developers working on the plugin source code. End users do not need to install dependencies as they are bundled with the plugin.
+
+1. **Fork and Clone**
+   ```bash
+   git clone https://github.com/yourusername/onecommeOSCrouter.git
+   cd onecommeOSCrouter
+   ```
+
+2. **Install Development Dependencies**
+   ```bash
+   npm install  # Only needed for development work
+   ```
+
+3. **Run Development Tests**
+   ```bash
+   npm test
+   ```
+
+### Project Structure
+
+```
+onecommeOSCrouter/
+├── plugin.js                 # Main plugin entry point
+├── web-ui/                   # Web interface files
+│   ├── index.html           # Main UI page
+│   ├── app.js               # Frontend application logic
+│   └── source-schemas.js    # Platform field definitions
+├── impl/                     # Platform-specific handlers
+│   ├── youtube/             # YouTube message processing
+│   ├── bilibili/            # Bilibili message processing
+│   └── niconico.js          # Niconico message processing
+├── tests/                    # Test suite
+│   ├── test-config-persistence.js
+│   ├── test-osc-reliability.js
+│   ├── osc-monitor.js
+│   └── README.md
+├── docs/                     # Documentation
+├── node_modules/            # Bundled dependencies (included with plugin)
+├── config.json              # Runtime configuration (created automatically)
+├── routing-rules.json       # User-defined rules (created automatically)
+├── package.json             # Node.js dependencies manifest
+├── LICENSE                  # MIT license
+└── README.md               # This file
+```
+
+### Contributing Guidelines
+
+**Bug Reports**
+- Use GitHub issues with detailed reproduction steps
+- Include OneComme version, Node.js version, and OS information
+- Provide relevant log output from OneComme console
+
+**Feature Requests**
+- Explain the use case and expected behavior
+- Consider if the feature fits the plugin's scope
+- Provide mockups or examples if applicable
+
+**Pull Requests**
+- Follow existing code style and patterns
+- Add tests for new functionality
+- Update documentation for user-facing changes
+- Test with OneComme before submitting
+
+### Community Resources
+
+- **GitHub Issues**: Bug reports and feature requests
+- **Discussions**: General questions and community sharing
+- **Wiki**: Additional documentation and tutorials
+- **Examples Repository**: Community-contributed rule templates
+
+---
+
+## 📄 License & Credits
+
+**MIT License** - See [LICENSE](LICENSE) file for complete terms
+
+### Third-Party Dependencies
+- **node-osc**: OSC communication library
+- **express**: Web server framework
+- **OneComme**: Chat capture platform (required)
+
+### Acknowledgments
+- **VirtualCast team** for the original OneComme OSC plugin that inspired this project
+- OneComme development team for the extensible plugin architecture
+- OSC community for protocol specifications and best practices
+- Contributors and users who provide feedback and improvements
+
+---
+
+**Created by noodledostuff** | [GitHub Profile](https://github.com/noodledostuff)
+
+*Transform your streaming experience with intelligent chat-to-OSC routing* 🚀

@@ -70,11 +70,12 @@ class MessageLogger {
     }
 }
 
-// Configuration management
+// Enhanced Configuration management with comprehensive settings persistence
 class ConfigManager {
     constructor() {
         this.configPath = path.join(__dirname, 'config.json');
         this.config = this.loadConfig();
+        this.configVersion = '2.0.0';
     }
 
     loadConfig() {
@@ -82,33 +83,154 @@ class ConfigManager {
             if (fs.existsSync(this.configPath)) {
                 const data = fs.readFileSync(this.configPath, 'utf8');
                 const config = JSON.parse(data);
-                console.info(`Loaded configuration: OSC port ${config.oscPort}`);
-                return config;
+                
+                // Migrate old config versions if needed
+                const migratedConfig = this.migrateConfig(config);
+                
+                console.info(`📄 Loaded configuration from ${this.configPath}`);
+                console.info(`   OSC Target: ${migratedConfig.oscHost}:${migratedConfig.oscPort}`);
+                console.info(`   Default Endpoints: ${migratedConfig.enableDefaultEndpoints ? 'Enabled' : 'Disabled'}`);
+                
+                return migratedConfig;
             }
         } catch (error) {
-            console.warn('Failed to load configuration:', error.message);
+            console.warn('⚠️ Failed to load configuration:', error.message);
+            console.info('🔄 Creating new configuration file...');
         }
         
         // Return default configuration
-        const defaultConfig = {
-            oscPort: defaultPort,
-            oscHost: endpoint,
-            enableDefaultEndpoints: true
-        };
+        const defaultConfig = this.getDefaultConfig();
         this.saveConfig(defaultConfig);
         return defaultConfig;
+    }
+
+    getDefaultConfig() {
+        return {
+            // Version info for future migrations
+            version: this.configVersion,
+            lastUpdated: new Date().toISOString(),
+            
+            // OSC Output Settings
+            oscPort: defaultPort,
+            oscHost: endpoint,
+            enableDefaultEndpoints: true,
+            
+            // Web UI Settings
+            webUI: {
+                port: webUIPort,
+                autoStart: true,
+                theme: 'default'
+            },
+            
+            // Message Processing Settings
+            messageProcessing: {
+                maxMessages: 100,
+                enableDebugLogging: true,
+                logIncomingMessages: true,
+                logOutgoingMessages: true
+            },
+            
+            // Rule Engine Settings
+            ruleEngine: {
+                enableCustomRules: true,
+                maxRules: 50,
+                defaultConditionLogic: 'AND',
+                defaultGroupLogic: 'OR'
+            },
+            
+            // User Interface Preferences
+            ui: {
+                lastActiveTab: 'overview',
+                showNotifications: true,
+                notificationDuration: 5000,
+                autoRefreshLogs: true,
+                logsRefreshInterval: 2000,
+                enableAnimations: true,
+                compactMode: false
+            },
+            
+            // Export/Import Settings
+            export: {
+                includeSystemInfo: true,
+                includeRules: true,
+                includeConfiguration: true,
+                includeMessageLogs: false
+            },
+            
+            // Advanced Settings
+            advanced: {
+                oscReconnectInterval: 5000,
+                maxReconnectAttempts: 3,
+                messageQueueSize: 1000,
+                enableConnectionHealthCheck: true,
+                connectionHealthCheckInterval: 30000
+            }
+        };
+    }
+
+    migrateConfig(config) {
+        const currentVersion = config.version || '1.0.0';
+        const defaultConfig = this.getDefaultConfig();
+        
+        // Merge with default config to ensure all new properties exist
+        const migratedConfig = this.deepMerge(defaultConfig, config);
+        
+        // Update version and timestamp
+        migratedConfig.version = this.configVersion;
+        migratedConfig.lastUpdated = new Date().toISOString();
+        
+        // Version-specific migrations
+        if (currentVersion === '1.0.0') {
+            console.info('📈 Migrating configuration from v1.0.0 to v2.0.0');
+            // Add any specific migration logic here
+        }
+        
+        return migratedConfig;
+    }
+
+    deepMerge(target, source) {
+        const result = { ...target };
+        
+        for (const key in source) {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                result[key] = this.deepMerge(result[key] || {}, source[key]);
+            } else {
+                result[key] = source[key];
+            }
+        }
+        
+        return result;
     }
 
     saveConfig(config = null) {
         try {
             const configToSave = config || this.config;
+            configToSave.lastUpdated = new Date().toISOString();
+            
+            // Create backup of existing config before saving
+            this.createConfigBackup();
+            
             fs.writeFileSync(this.configPath, JSON.stringify(configToSave, null, 2));
-            console.info(`Saved configuration: OSC port ${configToSave.oscPort}`);
+            console.info(`💾 Configuration saved to ${this.configPath}`);
+            
         } catch (error) {
-            console.error('Failed to save configuration:', error.message);
+            console.error('❌ Failed to save configuration:', error.message);
+            throw error;
         }
     }
 
+    createConfigBackup() {
+        try {
+            if (fs.existsSync(this.configPath)) {
+                const backupPath = this.configPath.replace('.json', '.backup.json');
+                fs.copyFileSync(this.configPath, backupPath);
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to create config backup:', error.message);
+        }
+    }
+
+    // OSC Configuration Methods
     getOscPort() {
         return this.config.oscPort || defaultPort;
     }
@@ -118,14 +240,24 @@ class ConfigManager {
     }
 
     updateOscPort(port) {
-        this.config.oscPort = parseInt(port) || defaultPort;
+        const validPort = parseInt(port) || defaultPort;
+        if (validPort < 1024 || validPort > 65535) {
+            throw new Error(`Invalid port number: ${validPort}. Must be between 1024-65535.`);
+        }
+        this.config.oscPort = validPort;
         this.saveConfig();
+        console.info(`🔄 OSC port updated to ${validPort}`);
         return this.config.oscPort;
     }
 
     updateOscHost(host) {
-        this.config.oscHost = host || endpoint;
+        const validHost = (host || endpoint).trim();
+        if (!validHost) {
+            throw new Error('OSC host cannot be empty');
+        }
+        this.config.oscHost = validHost;
         this.saveConfig();
+        console.info(`🔄 OSC host updated to ${validHost}`);
         return this.config.oscHost;
     }
     
@@ -136,7 +268,148 @@ class ConfigManager {
     setEnableDefaultEndpoints(enabled) {
         this.config.enableDefaultEndpoints = !!enabled;
         this.saveConfig();
+        console.info(`🔄 Default endpoints ${enabled ? 'enabled' : 'disabled'}`);
         return this.config.enableDefaultEndpoints;
+    }
+
+    // UI Preferences Methods
+    getUIPreference(key, defaultValue = null) {
+        return this.config.ui?.[key] ?? defaultValue;
+    }
+
+    setUIPreference(key, value) {
+        if (!this.config.ui) this.config.ui = {};
+        this.config.ui[key] = value;
+        this.saveConfig();
+        return value;
+    }
+
+    getLastActiveTab() {
+        return this.getUIPreference('lastActiveTab', 'overview');
+    }
+
+    setLastActiveTab(tab) {
+        return this.setUIPreference('lastActiveTab', tab);
+    }
+
+    // Message Processing Settings
+    getMessageProcessingSetting(key, defaultValue = null) {
+        return this.config.messageProcessing?.[key] ?? defaultValue;
+    }
+
+    setMessageProcessingSetting(key, value) {
+        if (!this.config.messageProcessing) this.config.messageProcessing = {};
+        this.config.messageProcessing[key] = value;
+        this.saveConfig();
+        return value;
+    }
+
+    // Rule Engine Settings
+    getRuleEngineSetting(key, defaultValue = null) {
+        return this.config.ruleEngine?.[key] ?? defaultValue;
+    }
+
+    setRuleEngineSetting(key, value) {
+        if (!this.config.ruleEngine) this.config.ruleEngine = {};
+        this.config.ruleEngine[key] = value;
+        this.saveConfig();
+        return value;
+    }
+
+    // Advanced Settings
+    getAdvancedSetting(key, defaultValue = null) {
+        return this.config.advanced?.[key] ?? defaultValue;
+    }
+
+    setAdvancedSetting(key, value) {
+        if (!this.config.advanced) this.config.advanced = {};
+        this.config.advanced[key] = value;
+        this.saveConfig();
+        return value;
+    }
+
+    // Export full configuration
+    exportConfiguration() {
+        return {
+            ...this.config,
+            exportedAt: new Date().toISOString(),
+            exportedBy: 'OneComme OSC Router v' + this.configVersion
+        };
+    }
+
+    // Import configuration with validation
+    importConfiguration(importedConfig) {
+        try {
+            // Validate imported config structure
+            if (!importedConfig || typeof importedConfig !== 'object') {
+                throw new Error('Invalid configuration format');
+            }
+
+            // Merge imported config with current config
+            const mergedConfig = this.deepMerge(this.config, importedConfig);
+            
+            // Update version and timestamp
+            mergedConfig.version = this.configVersion;
+            mergedConfig.lastUpdated = new Date().toISOString();
+
+            this.config = mergedConfig;
+            this.saveConfig();
+            
+            console.info('📥 Configuration imported successfully');
+            return { success: true, message: 'Configuration imported successfully' };
+            
+        } catch (error) {
+            console.error('❌ Failed to import configuration:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Reset to defaults
+    resetToDefaults() {
+        try {
+            const backupPath = this.configPath.replace('.json', '.before-reset.json');
+            if (fs.existsSync(this.configPath)) {
+                fs.copyFileSync(this.configPath, backupPath);
+                console.info(`📄 Current config backed up to ${backupPath}`);
+            }
+            
+            this.config = this.getDefaultConfig();
+            this.saveConfig();
+            
+            console.info('🔄 Configuration reset to defaults');
+            return { success: true, message: 'Configuration reset to defaults' };
+            
+        } catch (error) {
+            console.error('❌ Failed to reset configuration:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Get configuration summary for display
+    getConfigurationSummary() {
+        return {
+            version: this.config.version,
+            lastUpdated: this.config.lastUpdated,
+            oscTarget: `${this.config.oscHost}:${this.config.oscPort}`,
+            defaultEndpoints: this.config.enableDefaultEndpoints,
+            webUIPort: this.config.webUI?.port || webUIPort,
+            totalSettings: this.countTotalSettings()
+        };
+    }
+
+    countTotalSettings() {
+        let count = 0;
+        const countObject = (obj) => {
+            for (const key in obj) {
+                if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+                    countObject(obj[key]);
+                } else {
+                    count++;
+                }
+            }
+        };
+        countObject(this.config);
+        return count;
     }
 }
 
@@ -616,6 +889,135 @@ class WebUIServer {
             }
         });
 
+        // Enhanced configuration API endpoints
+        this.app.get('/api/config/full', (req, res) => {
+            res.json({
+                success: true,
+                config: this.configManager.config,
+                summary: this.configManager.getConfigurationSummary()
+            });
+        });
+
+        // UI Preferences endpoints
+        this.app.get('/api/config/ui', (req, res) => {
+            res.json({
+                success: true,
+                ui: this.configManager.config.ui || {}
+            });
+        });
+
+        this.app.put('/api/config/ui', (req, res) => {
+            try {
+                const updates = req.body;
+                const updatedPreferences = {};
+                
+                for (const [key, value] of Object.entries(updates)) {
+                    updatedPreferences[key] = this.configManager.setUIPreference(key, value);
+                }
+                
+                res.json({
+                    success: true,
+                    message: 'UI preferences updated',
+                    ui: updatedPreferences
+                });
+            } catch (error) {
+                res.status(400).json({ success: false, error: error.message });
+            }
+        });
+
+        // Configuration export/import endpoints
+        this.app.get('/api/config/export', (req, res) => {
+            try {
+                const exportData = {
+                    configuration: this.configManager.exportConfiguration(),
+                    rules: this.ruleEngine.rules,
+                    exportInfo: {
+                        timestamp: new Date().toISOString(),
+                        version: '2.0.0',
+                        source: 'OneComme OSC Router'
+                    }
+                };
+                
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Content-Disposition', `attachment; filename="onecomme-config-${Date.now()}.json"`);
+                res.json(exportData);
+            } catch (error) {
+                res.status(500).json({ success: false, error: error.message });
+            }
+        });
+
+        this.app.post('/api/config/import', (req, res) => {
+            try {
+                const { configuration, rules } = req.body;
+                const results = [];
+                
+                // Import configuration if provided
+                if (configuration) {
+                    const configResult = this.configManager.importConfiguration(configuration);
+                    results.push({ type: 'configuration', ...configResult });
+                }
+                
+                // Import rules if provided
+                if (rules && Array.isArray(rules)) {
+                    try {
+                        this.ruleEngine.rules = rules;
+                        this.ruleEngine.saveRules();
+                        results.push({ type: 'rules', success: true, message: `Imported ${rules.length} rules` });
+                    } catch (error) {
+                        results.push({ type: 'rules', success: false, error: error.message });
+                    }
+                }
+                
+                const allSuccessful = results.every(r => r.success);
+                
+                res.json({
+                    success: allSuccessful,
+                    message: allSuccessful ? 'Configuration imported successfully' : 'Partial import completed',
+                    results: results
+                });
+                
+            } catch (error) {
+                res.status(400).json({ success: false, error: error.message });
+            }
+        });
+
+        // Configuration reset endpoint
+        this.app.post('/api/config/reset', (req, res) => {
+            try {
+                const result = this.configManager.resetToDefaults();
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ success: false, error: error.message });
+            }
+        });
+
+        // Advanced settings endpoints
+        this.app.get('/api/config/advanced', (req, res) => {
+            res.json({
+                success: true,
+                advanced: this.configManager.config.advanced || {}
+            });
+        });
+
+        this.app.put('/api/config/advanced', (req, res) => {
+            try {
+                const updates = req.body;
+                const updatedSettings = {};
+                
+                for (const [key, value] of Object.entries(updates)) {
+                    updatedSettings[key] = this.configManager.setAdvancedSetting(key, value);
+                }
+                
+                res.json({
+                    success: true,
+                    message: 'Advanced settings updated',
+                    advanced: updatedSettings
+                });
+            } catch (error) {
+                res.status(400).json({ success: false, error: error.message });
+            }
+        });
+
         // Message logging endpoints
         this.app.get('/api/logs', (req, res) => {
             const limit = parseInt(req.query.limit) || null;
@@ -829,18 +1231,52 @@ class Domain {
     }
 
     initOscClient() {
-        if (this.client) {
-            this.client.close();
+        try {
+            // Close existing client safely
+            if (this.client) {
+                console.debug(`🔄 Closing existing OSC client`);
+                try {
+                    this.client.close();
+                } catch (closeError) {
+                    console.warn(`⚠️ Failed to close existing OSC client: ${closeError.message}`);
+                }
+                this.client = null;
+            }
+            
+            const oscPort = this.configManager.getOscPort();
+            const oscHost = this.configManager.getOscHost();
+            
+            console.debug(`🔄 Initializing OSC client to ${oscHost}:${oscPort}`);
+            
+            // Validate configuration
+            if (!oscHost || oscHost.trim() === '') {
+                throw new Error('OSC host cannot be empty');
+            }
+            
+            if (!oscPort || oscPort < 1024 || oscPort > 65535) {
+                throw new Error(`Invalid OSC port: ${oscPort}. Must be between 1024-65535`);
+            }
+            
+            // Create new client
+            this.client = new Client(oscHost, oscPort);
+            
+            // Set up error handling for the client
+            if (this.client && typeof this.client.on === 'function') {
+                this.client.on('error', (error) => {
+                    console.error(`❌ OSC Client Error: ${error.message}`);
+                });
+            }
+            
+            this.lastConnectedPort = oscPort;
+            this.lastConnectedHost = oscHost;
+            
+            console.info(`✅ OSC Client connected to ${oscHost}:${oscPort}`);
+            
+        } catch (error) {
+            console.error(`❌ Failed to initialize OSC client: ${error.message}`);
+            this.client = null;
+            throw error;
         }
-        
-        const oscPort = this.configManager.getOscPort();
-        const oscHost = this.configManager.getOscHost();
-        
-        this.client = new Client(oscHost, oscPort);
-        this.lastConnectedPort = oscPort;
-        this.lastConnectedHost = oscHost;
-        
-        console.info(`OSC Client connected to ${oscHost}:${oscPort}`);
     }
 
     destroy() {
@@ -867,37 +1303,63 @@ class Domain {
     }
 
     processComments(comments) {
-        comments.forEach((cm) => {
+        console.info(`📝 Processing ${comments.length} comment(s)`);
+        
+        comments.forEach((cm, index) => {
+            const messageId = `msg-${Date.now()}-${index}`;
+            console.debug(`🔄 [${messageId}] Processing comment from ${cm.service}`);
+            
             try {
                 // Log incoming message
                 this.messageLogger.logIncoming(cm.service, cm.data, true);
+                console.debug(`📝 [${messageId}] Logged incoming message`);
                 
                 const subject = this.converter.convert(cm);
                 if (subject === undefined) {
+                    console.warn(`⚠️ [${messageId}] Message conversion failed - no subject created`);
                     this.messageLogger.logIncoming(cm.service, cm.data, false);
                     return;
                 }
+                console.debug(`✅ [${messageId}] Message converted to subject: ${subject.constructor.name}`);
+                console.debug(`🎯 [${messageId}] Target endpoint: ${subject.endpoint}`);
 
                 // Apply routing rules
                 const ruleResult = this.ruleEngine.processMessage(subject);
-                console.info(`Message matched ${ruleResult.matchedRules.length} rules`);
+                console.info(`📋 [${messageId}] Message matched ${ruleResult.matchedRules.length} rules, ${ruleResult.actions.length} actions`);
+                console.debug(`📝 [${messageId}] Should process default endpoints: ${ruleResult.shouldProcess}`);
+                
+                if (ruleResult.matchedRules.length > 0) {
+                    console.debug(`📋 [${messageId}] Matched rules: ${ruleResult.matchedRules.map(r => r.name || r.id).join(', ')}`);
+                }
 
                 // Process custom actions from rules
                 for (const action of ruleResult.actions) {
                     try {
+                        console.debug(`⚙️ [${messageId}] Processing custom action: ${action.type} -> ${action.endpoint}`);
                         this.processCustomAction(action, subject);
+                        console.debug(`✅ [${messageId}] Custom action completed`);
                     } catch (actionError) {
-                        console.error(`Failed to process custom action: ${actionError.message}`);
+                        console.error(`❌ [${messageId}] Failed to process custom action: ${actionError.message}`);
                     }
                 }
 
                 // Send to default endpoints if not blocked and default endpoints are enabled
-                if (ruleResult.shouldProcess && this.configManager.getEnableDefaultEndpoints()) {
+                const defaultEndpointsEnabled = this.configManager.getEnableDefaultEndpoints();
+                console.debug(`🎯 [${messageId}] Default endpoints enabled: ${defaultEndpointsEnabled}, should process: ${ruleResult.shouldProcess}`);
+                
+                if (ruleResult.shouldProcess && defaultEndpointsEnabled) {
+                    console.debug(`📤 [${messageId}] Sending to default endpoints`);
                     this.sendToDefaultEndpoints(subject);
+                } else {
+                    const reason = !ruleResult.shouldProcess ? 'blocked by rules' : 'default endpoints disabled';
+                    console.debug(`⏸️ [${messageId}] Skipping default endpoints: ${reason}`);
                 }
+                
+                console.debug(`✅ [${messageId}] Message processing completed`);
 
             } catch (error) {
-                console.error(`Failed to process comment from ${cm.service}: ${error.message}`);
+                console.error(`❌ [${messageId}] Failed to process comment from ${cm.service}: ${error.message}`);
+                console.error(`[${messageId}] Error stack:`, error.stack);
                 this.messageLogger.logIncoming(cm.service, cm.data, false);
             }
         });
@@ -917,13 +1379,31 @@ class Domain {
     }
 
     sendToDefaultEndpoints(subject) {
+        console.debug(`🎯 Sending to default endpoint: ${subject.endpoint}`);
+        
         // Send OSC message for specific endpoint
         try {
+            if (!subject.endpoint) {
+                throw new Error('Subject has no endpoint defined');
+            }
+            
+            console.debug(`🔄 Getting JSON from subject: ${subject.constructor.name}`);
             const json = subject.getJson();
+            
+            if (!json) {
+                throw new Error('Subject.getJson() returned null/undefined');
+            }
+            
+            console.debug(`📦 JSON length: ${json.length} characters`);
             const jsonUtf8 = Buffer.from(json, "utf-8");
+            
+            console.debug(`📤 Calling send method for ${subject.endpoint}`);
             this.send(subject.endpoint, jsonUtf8);
+            
+            console.debug(`✅ Default endpoint send completed for ${subject.endpoint}`);
         } catch (oscError) {
-            console.error(`Failed to send OSC message: ${oscError.message}`);
+            console.error(`❌ Failed to send OSC message to default endpoint ${subject.endpoint}: ${oscError.message}`);
+            console.error('OSC Error stack:', oscError.stack);
         }
     }
 
@@ -931,29 +1411,79 @@ class Domain {
         try {
             // Ensure we have the latest OSC client configuration
             if (!this.client || this.shouldReconnectClient()) {
+                console.debug(`🔄 Reconnecting OSC client (client exists: ${!!this.client}, should reconnect: ${this.shouldReconnectClient()})`);
                 this.initOscClient();
             }
             
             const oscPort = this.configManager.getOscPort();
             const oscHost = this.configManager.getOscHost();
             
-            console.info(`Sending message to ${oscHost}:${oscPort}${oscEndpoint}: ${data.toString().substring(0, 100)}...`);
-            const message = new Message(oscEndpoint, data);
-            
-            if (this.client) {
-                this.client.send(message);
-                
-                // Log successful outgoing message - preserve full JSON for web UI parsing
-                const logData = data.toString();
-                this.messageLogger.logOutgoing(oscEndpoint, logData, true);
-            } else {
-                throw new Error('OSC client not available');
+            if (!this.client) {
+                const error = new Error('OSC client failed to initialize');
+                console.error(`❌ OSC Client Error: ${error.message}`);
+                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), false, error.message);
+                throw error;
             }
+            
+            // Validate OSC endpoint
+            if (!oscEndpoint || !oscEndpoint.startsWith('/')) {
+                const error = new Error(`Invalid OSC endpoint: ${oscEndpoint}`);
+                console.error(`❌ Invalid Endpoint: ${error.message}`);
+                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), false, error.message);
+                throw error;
+            }
+            
+            // Validate data
+            if (!data) {
+                const error = new Error('No data provided for OSC message');
+                console.error(`❌ No Data: ${error.message}`);
+                this.messageLogger.logOutgoing(oscEndpoint, 'null', false, error.message);
+                throw error;
+            }
+            
+            const messagePreview = data.toString().substring(0, 200);
+            console.info(`📤 Sending OSC: ${oscHost}:${oscPort}${oscEndpoint} [${data.length} bytes]`);
+            console.debug(`📦 Data preview: ${messagePreview}${data.length > 200 ? '...' : ''}`);
+            
+            // Create OSC message with error handling
+            let message;
+            try {
+                message = new Message(oscEndpoint, data);
+                console.debug(`✅ OSC Message created successfully`);
+            } catch (messageError) {
+                const error = new Error(`Failed to create OSC message: ${messageError.message}`);
+                console.error(`❌ Message Creation Error: ${error.message}`);
+                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), false, error.message);
+                throw error;
+            }
+            
+            // Send message with proper error handling
+            try {
+                this.client.send(message);
+                console.debug(`✅ OSC message sent successfully to ${oscEndpoint}`);
+                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), true);
+            } catch (sendError) {
+                console.error(`❌ OSC Send Error: ${sendError.message}`);
+                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), false, sendError.message);
+                
+                // Try to recover by reinitializing the client
+                console.warn(`🔄 Attempting to recover OSC client connection...`);
+                this.initOscClient();
+                
+                // Rethrow to trigger the outer catch block
+                throw sendError;
+            }
+            
         } catch (error) {
-            // Log failed outgoing message - preserve full JSON for web UI parsing
-            const logData = data.toString();
+            console.error(`❌ Critical OSC Error: ${error.message}`);
+            console.error(`Stack trace:`, error.stack);
+            
+            // Log failed outgoing message
+            const logData = data ? data.toString() : 'null';
             this.messageLogger.logOutgoing(oscEndpoint, logData, false, error.message);
-            throw error;
+            
+            // Don't throw here to prevent stopping the entire message processing
+            // The error is already logged for debugging
         }
     }
     

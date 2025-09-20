@@ -3,16 +3,154 @@ class RoutingUI {
     constructor() {
         this.rules = [];
         this.templates = [];
+        this.uiPreferences = {};
+        this.configCache = {};
         this.init();
     }
 
     async init() {
+        await this.loadUIPreferences();
+        await this.restoreLastActiveTab();
         await this.loadRules();
         await this.loadTemplates();
         this.setupEventListeners();
+        this.setupUIPreferenceHandlers();
         this.renderRules();
         this.renderTemplates();
         this.startLogAutoRefresh();
+        
+        // Save UI preferences periodically
+        this.startPreferencesSaver();
+    }
+    
+    async loadUIPreferences() {
+        try {
+            const response = await fetch('/api/config/ui');
+            const data = await response.json();
+            this.uiPreferences = data.ui || {};
+            console.info('🎨 UI preferences loaded:', this.uiPreferences);
+        } catch (error) {
+            console.warn('Failed to load UI preferences:', error);
+            this.uiPreferences = {};
+        }
+    }
+    
+    async saveUIPreference(key, value) {
+        try {
+            this.uiPreferences[key] = value;
+            
+            const response = await fetch('/api/config/ui', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ [key]: value })
+            });
+            
+            if (response.ok) {
+                console.debug(`💾 UI preference saved: ${key} = ${value}`);
+            }
+        } catch (error) {
+            console.warn('Failed to save UI preference:', error);
+        }
+    }
+    
+    async restoreLastActiveTab() {
+        const lastTab = this.uiPreferences.lastActiveTab || 'overview';
+        // Wait a moment for DOM to be ready
+        setTimeout(() => {
+            this.switchTab(lastTab);
+        }, 100);
+    }
+    
+    startPreferencesSaver() {
+        // Auto-save preferences every 30 seconds if there are changes
+        setInterval(() => {
+            if (this.hasUnsavedPreferences) {
+                this.batchSavePreferences();
+            }
+        }, 30000);
+    }
+    
+    async batchSavePreferences() {
+        try {
+            const response = await fetch('/api/config/ui', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(this.uiPreferences)
+            });
+            
+            if (response.ok) {
+                console.debug('💾 UI preferences batch saved');
+                this.hasUnsavedPreferences = false;
+            }
+        } catch (error) {
+            console.warn('Failed to batch save UI preferences:', error);
+        }
+    }
+    
+    setupUIPreferenceHandlers() {
+        // Track notification preferences
+        const notificationSettings = document.querySelectorAll('[data-preference]');
+        notificationSettings.forEach(element => {
+            element.addEventListener('change', (e) => {
+                const preference = e.target.dataset.preference;
+                const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                this.saveUIPreference(preference, value);
+            });
+        });
+        
+        // Track form field changes for auto-save
+        this.setupFormAutoSave();
+    }
+    
+    setupFormAutoSave() {
+        // Auto-save form data when user stops typing
+        const formInputs = document.querySelectorAll('#rule-form input, #rule-form textarea, #rule-form select');
+        formInputs.forEach(input => {
+            let timeoutId;
+            
+            input.addEventListener('input', () => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    this.saveFormDraft();
+                }, 2000); // Save 2 seconds after user stops typing
+            });
+        });
+    }
+    
+    saveFormDraft() {
+        const formData = new FormData(document.getElementById('rule-form'));
+        const draftData = {};
+        for (let [key, value] of formData.entries()) {
+            draftData[key] = value;
+        }
+        
+        this.saveUIPreference('formDraft', draftData);
+        console.debug('💾 Form draft saved');
+    }
+    
+    restoreFormDraft() {
+        const draft = this.uiPreferences.formDraft;
+        if (!draft) return;
+        
+        try {
+            for (const [key, value] of Object.entries(draft)) {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = value;
+                }
+            }
+            console.debug('📄 Form draft restored');
+        } catch (error) {
+            console.warn('Failed to restore form draft:', error);
+        }
+    }
+    
+    clearFormDraft() {
+        this.saveUIPreference('formDraft', null);
     }
 
     async loadRules() {
@@ -52,6 +190,9 @@ class RoutingUI {
     }
 
     switchTab(tabName) {
+        // Save the active tab preference
+        this.saveUIPreference('lastActiveTab', tabName);
+        
         // Remove active class from all tabs and content
         document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -65,6 +206,7 @@ class RoutingUI {
             this.refreshRules();
         } else if (tabName === 'create') {
             this.initializeCreateRuleTab();
+            this.restoreFormDraft(); // Restore form draft when switching to create tab
         } else if (tabName === 'settings') {
             this.loadConfigurationUI();
         } else if (tabName === 'logs') {
