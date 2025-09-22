@@ -31,6 +31,24 @@ const PlatformFields = {
     },
     niconico: {
         // Niconico-specific fields can be added here as they become available
+    },
+    twitch: {
+        isSubscriber: { name: 'isSubscriber', label: 'Is Subscriber', type: 'boolean', operators: ['equals'] },
+        isVip: { name: 'isVip', label: 'Is VIP', type: 'boolean', operators: ['equals'] },
+        isModerator: { name: 'isModerator', label: 'Is Moderator', type: 'boolean', operators: ['equals'] },
+        isPartner: { name: 'isPartner', label: 'Is Partner', type: 'boolean', operators: ['equals'] },
+        isAffiliate: { name: 'isAffiliate', label: 'Is Affiliate', type: 'boolean', operators: ['equals'] },
+        isTurbo: { name: 'isTurbo', label: 'Has Turbo', type: 'boolean', operators: ['equals'] },
+        isPrime: { name: 'isPrime', label: 'Has Prime', type: 'boolean', operators: ['equals'] },
+        isStaff: { name: 'isStaff', label: 'Is Staff', type: 'boolean', operators: ['equals'] },
+        isGlobalMod: { name: 'isGlobalMod', label: 'Is Global Moderator', type: 'boolean', operators: ['equals'] },
+        userType: { name: 'userType', label: 'User Type', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains'] },
+        subscriptionTier: { name: 'subscriptionTier', label: 'Subscription Tier (1000, 2000, 3000)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        subscriptionMonths: { name: 'subscriptionMonths', label: 'Subscription Months', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        channelName: { name: 'channelName', label: 'Channel Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+        firstMsg: { name: 'firstMsg', label: 'Is First Time Chatter', type: 'boolean', operators: ['equals'] },
+        returning: { name: 'returning', label: 'Is Returning Chatter', type: 'boolean', operators: ['equals'] },
+        color: { name: 'color', label: 'Username Color', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains'] }
     }
 };
 
@@ -45,6 +63,26 @@ const MessageTypeFields = {
         price: { name: 'price', label: 'SuperChat Amount', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
         currency: { name: 'currency', label: 'Currency', type: 'string', operators: ['equals', 'not_equals'] },
         significance: { name: 'significance', label: 'Significance Level', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] }
+    },
+    subscription: {
+        tier: { name: 'tier', label: 'Subscription Tier', type: 'string', operators: ['equals', 'not_equals'] },
+        months: { name: 'months', label: 'Total Months', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        streak: { name: 'streak', label: 'Streak Months', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        isGift: { name: 'isGift', label: 'Is Gift Sub', type: 'boolean', operators: ['equals'] },
+        multiMonthGift: { name: 'multiMonthGift', label: 'Multi-Month Gift', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        massGiftCount: { name: 'massGiftCount', label: 'Mass Gift Count', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] }
+    },
+    bits: {
+        bits: { name: 'bits', label: 'Bits Amount', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        bitsInDollars: { name: 'bitsInDollars', label: 'Bits Value (USD)', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        cheerBadgeTier: { name: 'cheerBadgeTier', label: 'Cheer Badge Tier', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        isAnonymous: { name: 'isAnonymous', label: 'Is Anonymous Cheer', type: 'boolean', operators: ['equals'] },
+        isPinned: { name: 'isPinned', label: 'Is Pinned Cheer', type: 'boolean', operators: ['equals'] }
+    },
+    raid: {
+        viewerCount: { name: 'viewerCount', label: 'Raid Viewer Count', type: 'number', operators: ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'] },
+        raiderName: { name: 'raiderName', label: 'Raider Name', type: 'string', operators: ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'regex'] },
+        isHosting: { name: 'isHosting', label: 'Is Host (Legacy)', type: 'boolean', operators: ['equals'] }
     }
 };
 
@@ -74,6 +112,15 @@ const SourceSchemas = {
         icon: 'fas fa-video',
         messageTypes: ['comment', 'gift'],
         defaultEndpoints: ['/onecomme/niconico/comment']
+    },
+
+    // Twitch message schema
+    twitch: {
+        name: 'Twitch',
+        color: '#9146ff',
+        icon: 'fab fa-twitch',
+        messageTypes: ['comment', 'subscription', 'bits', 'raid'],
+        defaultEndpoints: ['/onecomme/twitch/comment', '/onecomme/twitch/subscription', '/onecomme/twitch/bits', '/onecomme/twitch/raid']
     }
 };
 

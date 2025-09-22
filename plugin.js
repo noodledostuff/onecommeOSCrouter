@@ -8,6 +8,7 @@ const { Client, Message } = require('node-osc');
 const { NiconamaComment, NiconamaGift } = require('./impl/niconico');
 const { YouTubeComment, YouTubeSuperChat } = require('./impl/youtube/index');
 const { BilibiliComment, BilibiliGift } = require('./impl/bilibili/index');
+const { TwitchComment, TwitchSubscription, TwitchBits, TwitchRaid } = require('./impl/twitch/index');
 
 const endpoint = "127.0.0.1";
 const defaultPort = 19100;
@@ -705,6 +706,9 @@ class EnhancedMessageConverter {
                 ? new BilibiliGift(data)
                 : new BilibiliComment(data);
         }
+        if (service == "twitch" && this.isTwitchMessage(data)) {
+            return this.convertTwitchMessage(data);
+        }
         return undefined;
     }
 
@@ -723,6 +727,25 @@ class EnhancedMessageConverter {
 
     isBilibiliComment(subject) {
         return subject !== undefined;
+    }
+    
+    isTwitchMessage(subject) {
+        return subject !== undefined;
+    }
+    
+    convertTwitchMessage(data) {
+        // Determine Twitch message type based on data properties
+        if (data.subscriptionType || data.tier || data.isGift) {
+            return new TwitchSubscription(data);
+        }
+        if (data.bits || data.bitsAmount || data.cheerEmotes) {
+            return new TwitchBits(data);
+        }
+        if (data.viewerCount !== undefined || data.raiderName || data.raidType) {
+            return new TwitchRaid(data);
+        }
+        // Default to regular comment
+        return new TwitchComment(data);
     }
 }
 

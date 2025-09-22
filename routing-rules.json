@@ -97,5 +97,125 @@
       }
     ],
     "blockDefault": false
+  },
+  {
+    "id": "twitch-high-bits",
+    "name": "High Value Twitch Bits (1000+)",
+    "description": "Routes Twitch bits/cheering events with 1000+ bits to special alert endpoint",
+    "enabled": true,
+    "conditionGroups": [
+      {
+        "source": "twitch",
+        "messageType": "bits",
+        "conditions": [
+          {
+            "field": "bits",
+            "operator": "greater_than_or_equal",
+            "value": 1000,
+            "dataType": "number"
+          }
+        ],
+        "conditionLogic": "AND"
+      }
+    ],
+    "groupLogic": "AND",
+    "actions": [
+      {
+        "type": "route_to_endpoint",
+        "endpoint": "/onecomme/twitch/big-bits",
+        "fields": ["name", "displayName", "comment", "bits", "bitsInDollars", "cheerBadgeTier"]
+      }
+    ],
+    "blockDefault": false
+  },
+  {
+    "id": "twitch-subscribers-only",
+    "name": "Twitch Subscribers Only",
+    "description": "Routes messages from Twitch subscribers to VIP endpoint",
+    "enabled": true,
+    "conditionGroups": [
+      {
+        "source": "twitch",
+        "messageType": "comment",
+        "conditions": [
+          {
+            "field": "isSubscriber",
+            "operator": "equals",
+            "value": true,
+            "dataType": "boolean"
+          }
+        ],
+        "conditionLogic": "AND"
+      }
+    ],
+    "groupLogic": "AND",
+    "actions": [
+      {
+        "type": "route_to_endpoint",
+        "endpoint": "/onecomme/twitch/subscribers",
+        "fields": ["name", "displayName", "comment", "subscriptionTier", "subscriptionMonths", "badges"]
+      }
+    ],
+    "blockDefault": false
+  },
+  {
+    "id": "twitch-big-raids",
+    "name": "Large Twitch Raids (50+ Viewers)",
+    "description": "Routes large Twitch raids with 50 or more viewers to special alert endpoint",
+    "enabled": true,
+    "conditionGroups": [
+      {
+        "source": "twitch",
+        "messageType": "raid",
+        "conditions": [
+          {
+            "field": "viewerCount",
+            "operator": "greater_than_or_equal",
+            "value": 50,
+            "dataType": "number"
+          }
+        ],
+        "conditionLogic": "AND"
+      }
+    ],
+    "groupLogic": "AND",
+    "actions": [
+      {
+        "type": "route_to_endpoint",
+        "endpoint": "/onecomme/twitch/big-raids",
+        "fields": ["raiderName", "raiderDisplayName", "viewerCount", "raidMessage", "targetChannelName"]
+      }
+    ],
+    "blockDefault": false
+  },
+  {
+    "id": "twitch-tier-3-subs",
+    "name": "Twitch Tier 3 Subscriptions",
+    "description": "Routes Tier 3 subscription events to premium alerts endpoint",
+    "enabled": true,
+    "conditionGroups": [
+      {
+        "source": "twitch",
+        "messageType": "subscription",
+        "conditions": [
+          {
+            "field": "tier",
+            "operator": "equals",
+            "value": "3000",
+            "dataType": "string"
+          }
+        ],
+        "conditionLogic": "AND"
+      }
+    ],
+    "groupLogic": "AND",
+    "actions": [
+      {
+        "type": "route_to_endpoint",
+        "endpoint": "/onecomme/twitch/tier3-subs",
+        "fields": ["name", "displayName", "subMessage", "tier", "months", "streak", "isGift", "gifterName"]
+      }
+    ],
+    "blockDefault": false
   }
 ]
