@@ -347,6 +347,13 @@ DEBUG_LOGGING=true
 
 Access advanced settings through the web interface:
 
+**OSC Output Settings:**
+- OSC host/port configuration
+- **OSC Message Format**: Choose between Binary Blob (default) or UTF-8 String
+  - **Binary**: Sends JSON as binary data (recommended for most OSC receivers)
+  - **String**: Sends JSON as plain text string (useful for text-based receivers or debugging)
+- Default endpoints enable/disable toggle
+
 **Connection Settings:**
 - OSC reconnection intervals
 - Maximum reconnection attempts
@@ -391,6 +398,13 @@ node tests/osc-monitor.js
 ```
 **Features**: Live message display, statistics tracking, log export
 
+#### OSC Message Format Test
+Test both binary and string OSC message formats:
+```bash
+node tests/test-osc-message-formats.js
+```
+**Tests**: Configuration system, binary/string message creation, Unicode handling, format comparison
+
 ### Troubleshooting Common Issues
 
 #### Messages Not Appearing in Target Application
@@ -427,6 +441,15 @@ node tests/osc-monitor.js
 2. Check for other applications using the port
 3. Try accessing from different browser
 4. Check OneComme's console for web server errors
+
+#### OSC Messages Not Parsing Correctly
+
+**Message Format Issues:**
+1. Try switching between Binary and String format in Settings
+2. **Binary format** works best with most OSC applications (VRChat, TouchOSC)
+3. **String format** may be needed for text-based or custom OSC receivers
+4. Run `node tests/test-osc-message-formats.js` to verify format handling
+5. Check your OSC receiver's expected data format (some expect strings, others binary)
 
 ---
 

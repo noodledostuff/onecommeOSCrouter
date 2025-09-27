@@ -89,6 +89,7 @@ class ConfigManager {
                 
                 console.info(`📄 Loaded configuration from ${this.configPath}`);
                 console.info(`   OSC Target: ${migratedConfig.oscHost}:${migratedConfig.oscPort}`);
+                console.info(`   OSC Message Format: ${migratedConfig.oscMessageFormat || 'binary'}`);
                 console.info(`   Default Endpoints: ${migratedConfig.enableDefaultEndpoints ? 'Enabled' : 'Disabled'}`);
                 
                 return migratedConfig;
@@ -114,6 +115,7 @@ class ConfigManager {
             oscPort: defaultPort,
             oscHost: endpoint,
             enableDefaultEndpoints: true,
+            oscMessageFormat: 'binary', // 'binary' or 'string' - format for outgoing OSC messages
             
             // Web UI Settings
             webUI: {
@@ -237,6 +239,21 @@ class ConfigManager {
 
     getOscHost() {
         return this.config.oscHost || endpoint;
+    }
+    
+    getOscMessageFormat() {
+        return this.config.oscMessageFormat || 'binary';
+    }
+    
+    updateOscMessageFormat(format) {
+        const validFormats = ['binary', 'string'];
+        if (!validFormats.includes(format)) {
+            throw new Error(`Invalid OSC message format: ${format}. Must be 'binary' or 'string'.`);
+        }
+        this.config.oscMessageFormat = format;
+        this.saveConfig();
+        console.info(`🔄 OSC message format updated to ${format}`);
+        return this.config.oscMessageFormat;
     }
 
     updateOscPort(port) {
@@ -820,6 +837,7 @@ class WebUIServer {
                 config: {
                     oscPort: this.configManager.getOscPort(),
                     oscHost: this.configManager.getOscHost(),
+                    oscMessageFormat: this.configManager.getOscMessageFormat(),
                     enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints()
                 }
             });
@@ -827,7 +845,7 @@ class WebUIServer {
 
         this.app.put('/api/config', (req, res) => {
             try {
-                const { oscPort, oscHost, enableDefaultEndpoints } = req.body;
+                const { oscPort, oscHost, oscMessageFormat, enableDefaultEndpoints } = req.body;
                 const updatedConfig = {};
                 
                 if (oscPort !== undefined) {
@@ -836,6 +854,10 @@ class WebUIServer {
                 
                 if (oscHost !== undefined) {
                     updatedConfig.oscHost = this.configManager.updateOscHost(oscHost);
+                }
+                
+                if (oscMessageFormat !== undefined) {
+                    updatedConfig.oscMessageFormat = this.configManager.updateOscMessageFormat(oscMessageFormat);
                 }
                 
                 if (enableDefaultEndpoints !== undefined) {
@@ -848,9 +870,10 @@ class WebUIServer {
                     config: {
                         oscPort: this.configManager.getOscPort(),
                         oscHost: this.configManager.getOscHost(),
+                        oscMessageFormat: this.configManager.getOscMessageFormat(),
                         enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints()
                     },
-                    note: enableDefaultEndpoints !== undefined ? 'Default endpoints setting updated' : 'OSC client will be reconnected on next message'
+                    note: enableDefaultEndpoints !== undefined ? 'Default endpoints setting updated' : (oscMessageFormat !== undefined ? 'OSC message format updated' : 'OSC client will be reconnected on next message')
                 });
             } catch (error) {
                 res.status(400).json({ success: false, error: error.message });
@@ -1441,19 +1464,32 @@ class Domain {
                 throw error;
             }
             
-            const messagePreview = data.toString().substring(0, 200);
-            console.info(`📤 Sending OSC: ${oscHost}:${oscPort}${oscEndpoint} [${data.length} bytes]`);
-            console.debug(`📦 Data preview: ${messagePreview}${data.length > 200 ? '...' : ''}`);
+            // Determine OSC message format
+            const oscMessageFormat = this.configManager.getOscMessageFormat();
+            let oscData;
+            
+            if (oscMessageFormat === 'string') {
+                // Send as string - convert buffer to string if needed
+                oscData = data.toString('utf-8');
+                console.info(`📤 Sending OSC String: ${oscHost}:${oscPort}${oscEndpoint} [${oscData.length} chars]`);
+            } else {
+                // Send as binary blob (default)
+                oscData = data;
+                console.info(`📤 Sending OSC Binary: ${oscHost}:${oscPort}${oscEndpoint} [${data.length} bytes]`);
+            }
+            
+            const messagePreview = oscData.toString().substring(0, 200);
+            console.debug(`📦 Data preview (${oscMessageFormat}): ${messagePreview}${oscData.toString().length > 200 ? '...' : ''}`);
             
             // Create OSC message with error handling
             let message;
             try {
-                message = new Message(oscEndpoint, data);
-                console.debug(`✅ OSC Message created successfully`);
+                message = new Message(oscEndpoint, oscData);
+                console.debug(`✅ OSC Message created successfully (format: ${oscMessageFormat})`);
             } catch (messageError) {
                 const error = new Error(`Failed to create OSC message: ${messageError.message}`);
                 console.error(`❌ Message Creation Error: ${error.message}`);
-                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), false, error.message);
+                this.messageLogger.logOutgoing(oscEndpoint, oscData.toString(), false, error.message);
                 throw error;
             }
             
@@ -1461,10 +1497,10 @@ class Domain {
             try {
                 this.client.send(message);
                 console.debug(`✅ OSC message sent successfully to ${oscEndpoint}`);
-                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), true);
+                this.messageLogger.logOutgoing(oscEndpoint, oscData.toString(), true);
             } catch (sendError) {
                 console.error(`❌ OSC Send Error: ${sendError.message}`);
-                this.messageLogger.logOutgoing(oscEndpoint, data.toString(), false, sendError.message);
+                this.messageLogger.logOutgoing(oscEndpoint, oscData.toString(), false, sendError.message);
                 
                 // Try to recover by reinitializing the client
                 console.warn(`🔄 Attempting to recover OSC client connection...`);
@@ -1478,8 +1514,8 @@ class Domain {
             console.error(`❌ Critical OSC Error: ${error.message}`);
             console.error(`Stack trace:`, error.stack);
             
-            // Log failed outgoing message
-            const logData = data ? data.toString() : 'null';
+            // Log failed outgoing message  
+            const logData = oscData ? oscData.toString() : (data ? data.toString() : 'null');
             this.messageLogger.logOutgoing(oscEndpoint, logData, false, error.message);
             
             // Don't throw here to prevent stopping the entire message processing

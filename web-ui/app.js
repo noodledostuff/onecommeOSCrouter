@@ -1340,6 +1340,7 @@ class RoutingUI {
             if (data.success) {
                 document.getElementById('osc-host').value = data.config.oscHost;
                 document.getElementById('osc-port').value = data.config.oscPort;
+                document.getElementById('osc-message-format').value = data.config.oscMessageFormat || 'binary';
                 document.getElementById('enable-default-endpoints').checked = data.config.enableDefaultEndpoints !== false;
                 document.getElementById('current-osc-target').textContent = `${data.config.oscHost}:${data.config.oscPort}`;
             }
@@ -1353,6 +1354,7 @@ class RoutingUI {
         try {
             const oscHost = document.getElementById('osc-host').value.trim() || '127.0.0.1';
             const oscPort = parseInt(document.getElementById('osc-port').value) || 19100;
+            const oscMessageFormat = document.getElementById('osc-message-format').value || 'binary';
             
             if (oscPort < 1024 || oscPort > 65535) {
                 this.showNotification('OSC Port must be between 1024 and 65535', 'warning');
@@ -1364,7 +1366,7 @@ class RoutingUI {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ oscHost, oscPort })
+                body: JSON.stringify({ oscHost, oscPort, oscMessageFormat })
             });
             
             const result = await response.json();

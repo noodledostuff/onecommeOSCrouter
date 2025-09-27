@@ -1426,6 +1426,18 @@
                             </div>
                         </div>
                         
+                        <div style="margin-bottom: 20px;">
+                            <label for="osc-message-format" style="display: block; margin-bottom: 8px; font-weight: bold;">OSC Message Format</label>
+                            <select id="osc-message-format" class="form-control" style="max-width: 300px;">
+                                <option value="binary">Binary Blob (Default)</option>
+                                <option value="string">UTF-8 String</option>
+                            </select>
+                            <small style="color: #718096; display: block; margin-top: 5px;">
+                                <strong>Binary:</strong> Sends JSON as binary data (recommended for most OSC receivers)<br>
+                                <strong>String:</strong> Sends JSON as plain text string (for receivers expecting text)
+                            </small>
+                        </div>
+                        
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                             <button class="btn btn-primary" onclick="saveConfiguration()">
                                 <i class="fas fa-save"></i> Save Configuration
