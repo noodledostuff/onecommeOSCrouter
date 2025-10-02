@@ -1680,18 +1680,20 @@ class RoutingUI {
 
     buildIncomingReadableContent(data, service) {
         let hasContent = false;
-        let content = '<div class="readable-fields">';
+        let content = '';
         
         // Gift Information (if present)
         if (data.hasGift) {
             hasContent = true;
+            content += '<div class="log-readable-content">';
+            content += '<div class="readable-fields">';
             content += '<div class="field-group gift-group">';
             content += '<div class="field-group-title"><i class="fas fa-gift"></i> Gift Information</div>';
             content += '<div class="gift-info-table">';
             content += '<div class="gift-info-row">';
             
             if (data.giftName) {
-                content += `<span class="gift-name-primary">${data.giftName}</span>`;
+                content += `<span class="gift-name-primary">${this.escapeHtml(data.giftName)}</span>`;
             }
             
             if (data.price !== undefined) {
@@ -1703,12 +1705,12 @@ class RoutingUI {
             content += '</div>';
             content += '</div>';
             content += '</div>';
+            content += '</div>';
+            content += '</div>';
         }
         
-        content += '</div>';
-        
-        // Return null if no content to display
-        return hasContent ? content : null;
+        // Return empty string if no content to display
+        return hasContent ? content : '';
     }
     
     formatTimestamp(timestamp) {
@@ -1721,6 +1723,7 @@ class RoutingUI {
     }
     
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -1803,24 +1806,25 @@ class RoutingUI {
                         ${statusIcon}
                         <span class="log-service ${msg.service}">${msg.service}</span>
                         ${badgeHtml}
-                        <strong>${userName}</strong>${hasGift}
+                        <strong>${this.escapeHtml(userName)}</strong>${hasGift}
                     </div>
                     <div class="log-time">${time}</div>
                 </div>
                 <div class="log-content">
-                    "${userComment.substring(0, 150)}${userComment.length > 150 ? '...' : ''}"
+                    "${this.escapeHtml(userComment.substring(0, 150))}${userComment.length > 150 ? '...' : ''}"
                 </div>
-                ${readableContent ? `<div class="log-readable-content">${readableContent}</div>` : ''}
+                ${readableContent || ''}
                 <div class="log-toggle" onclick="toggleLogJson('${msg.id}')">
                     <i class="fas fa-code"></i> Click to view raw Data
                 </div>
-                <div class="log-json" id="json-${msg.id}">${JSON.stringify(msg.data, null, 2)}</div>
+                <div class="log-json" id="json-${msg.id}">${this.escapeHtml(JSON.stringify(msg.data, null, 2))}</div>
             </div>
         `;
     }
 
     buildOutgoingReadableContent(data, endpoint) {
-        let content = '<div class="readable-fields">';
+        let content = '<div class="log-readable-content">';
+        content += '<div class="readable-fields">';
         
         // Message Content as clear table
         content += '<div class="field-group">';
@@ -1941,6 +1945,7 @@ class RoutingUI {
         
         content += '</div>';
         content += '</div>';
+        content += '</div>';
         return content;
     }
     
@@ -2029,19 +2034,17 @@ class RoutingUI {
                 <div class="log-header">
                     <div class="log-title">
                         ${statusIcon}
-                        <span class="log-endpoint">${msg.endpoint}</span>
+                        <span class="log-endpoint">${this.escapeHtml(msg.endpoint)}</span>
                         ${platformSpan}
-                        ${msg.error ? `<span style="color: #f56565; font-size: 12px;">(${msg.error})</span>` : ''}
+                        ${msg.error ? `<span style="color: #f56565; font-size: 12px;">(${this.escapeHtml(msg.error)})</span>` : ''}
                     </div>
                     <div class="log-time">${time}</div>
                 </div>
-                <div class="log-readable-content">
-                    ${readableContent}
-                </div>
+                ${readableContent || ''}
                 <div class="log-toggle" onclick="toggleLogJson('${msg.id}')">
                     <i class="fas fa-code"></i> Click to view raw Data
                 </div>
-                <div class="log-json" id="json-${msg.id}">${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data, null, 2)}</div>
+                <div class="log-json" id="json-${msg.id}">${this.escapeHtml(typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data, null, 2))}</div>
             </div>
         `;
     }
