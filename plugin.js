@@ -129,7 +129,8 @@ class ConfigManager {
                 maxMessages: 100,
                 enableDebugLogging: true,
                 logIncomingMessages: true,
-                logOutgoingMessages: true
+                logOutgoingMessages: true,
+                removeEmojis: false
             },
             
             // Rule Engine Settings
@@ -427,6 +428,49 @@ class ConfigManager {
         };
         countObject(this.config);
         return count;
+    }
+
+    // Emoji removal utility
+    removeEmojisFromText(text) {
+        if (!text || typeof text !== 'string') {
+            return text;
+        }
+
+        // Remove HTML img tags that contain emoji data
+        // This handles YouTube custom emojis like the example provided
+        let cleanedText = text.replace(/<img[^>]*data-custom-emoji="true"[^>]*\/?>|<img[^>]*alt=":[^:]*:"[^>]*\/?>/gi, '');
+        
+        // Remove any remaining HTML img tags that might be emojis
+        cleanedText = cleanedText.replace(/<img[^>]*\/?>|<img[^>]*>[^<]*<\/img>/gi, '');
+        
+        // Remove Unicode emojis (comprehensive emoji ranges)
+        // This covers most common emojis including:
+        // - Emoticons: 😀-😿
+        // - Dingbats: ✂-➰
+        // - Transport and Map: 🚀-🗿
+        // - Additional symbols: 🤐-🧿
+        // - Combining characters and modifiers
+        cleanedText = cleanedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{200D}]/gu, '');
+        
+        // Remove additional emoji ranges and variation selectors
+        cleanedText = cleanedText.replace(/[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]|[\u{E0020}-\u{E007F}]/gu, '');
+        
+        // Clean up any extra whitespace that might be left
+        cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
+        
+        return cleanedText;
+    }
+
+    // Get emoji removal setting
+    getRemoveEmojis() {
+        return this.getMessageProcessingSetting('removeEmojis', false);
+    }
+
+    // Set emoji removal setting
+    setRemoveEmojis(enabled) {
+        const result = this.setMessageProcessingSetting('removeEmojis', !!enabled);
+        console.info(`🔄 Emoji removal ${enabled ? 'enabled' : 'disabled'}`);
+        return result;
     }
 }
 
@@ -838,14 +882,15 @@ class WebUIServer {
                     oscPort: this.configManager.getOscPort(),
                     oscHost: this.configManager.getOscHost(),
                     oscMessageFormat: this.configManager.getOscMessageFormat(),
-                    enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints()
+                    enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints(),
+                    removeEmojis: this.configManager.getRemoveEmojis()
                 }
             });
         });
 
         this.app.put('/api/config', (req, res) => {
             try {
-                const { oscPort, oscHost, oscMessageFormat, enableDefaultEndpoints } = req.body;
+                const { oscPort, oscHost, oscMessageFormat, enableDefaultEndpoints, removeEmojis } = req.body;
                 const updatedConfig = {};
                 
                 if (oscPort !== undefined) {
@@ -864,6 +909,10 @@ class WebUIServer {
                     updatedConfig.enableDefaultEndpoints = this.configManager.setEnableDefaultEndpoints(enableDefaultEndpoints);
                 }
                 
+                if (removeEmojis !== undefined) {
+                    updatedConfig.removeEmojis = this.configManager.setRemoveEmojis(removeEmojis);
+                }
+                
                 res.json({ 
                     success: true, 
                     message: 'Configuration updated successfully',
@@ -871,9 +920,10 @@ class WebUIServer {
                         oscPort: this.configManager.getOscPort(),
                         oscHost: this.configManager.getOscHost(),
                         oscMessageFormat: this.configManager.getOscMessageFormat(),
-                        enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints()
+                        enableDefaultEndpoints: this.configManager.getEnableDefaultEndpoints(),
+                        removeEmojis: this.configManager.getRemoveEmojis()
                     },
-                    note: enableDefaultEndpoints !== undefined ? 'Default endpoints setting updated' : (oscMessageFormat !== undefined ? 'OSC message format updated' : 'OSC client will be reconnected on next message')
+                    note: removeEmojis !== undefined ? 'Emoji removal setting updated' : (enableDefaultEndpoints !== undefined ? 'Default endpoints setting updated' : (oscMessageFormat !== undefined ? 'OSC message format updated' : 'OSC client will be reconnected on next message'))
                 });
             } catch (error) {
                 res.status(400).json({ success: false, error: error.message });
@@ -1336,6 +1386,19 @@ class Domain {
                 // Log incoming message
                 this.messageLogger.logIncoming(cm.service, cm.data, true);
                 console.debug(`📝 [${messageId}] Logged incoming message`);
+                
+                // Apply emoji removal if enabled
+                if (this.configManager.getRemoveEmojis() && cm.data && cm.data.comment) {
+                    const originalComment = cm.data.comment;
+                    cm.data.comment = this.configManager.removeEmojisFromText(originalComment);
+                    
+                    // Log emoji removal activity
+                    if (originalComment !== cm.data.comment) {
+                        console.debug(`🎭 [${messageId}] Emojis removed from comment`);
+                        console.debug(`   Original: ${originalComment.substring(0, 100)}${originalComment.length > 100 ? '...' : ''}`);
+                        console.debug(`   Cleaned:  ${cm.data.comment.substring(0, 100)}${cm.data.comment.length > 100 ? '...' : ''}`);
+                    }
+                }
                 
                 const subject = this.converter.convert(cm);
                 if (subject === undefined) {

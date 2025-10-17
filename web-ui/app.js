@@ -1214,15 +1214,1556 @@ class RoutingUI {
     }
 
     editRule(ruleId) {
+        console.log('Edit rule called with ID:', ruleId);
         const rule = this.rules.find(r => r.id === ruleId);
-        if (!rule) return;
+        console.log('Found rule:', rule);
         
-        // For now, switch to create tab and populate form
-        // In a full implementation, you'd want a separate edit modal
-        this.switchTab('create');
-        this.populateFormWithRule(rule);
+        if (!rule) {
+            console.error('Rule not found!');
+            this.showNotification('Rule not found', 'error');
+            return;
+        }
+        
+        try {
+            this.openEditModal(rule);
+        } catch (error) {
+            console.error('Error opening edit modal:', error);
+            this.showNotification('Error opening edit modal: ' + error.message, 'error');
+        }
+    }
+    
+    openEditModal(rule) {
+        console.log('Opening edit modal for rule:', rule);
+        
+        // Store the rule being edited
+        this.editingRule = rule;
+        
+        // Create the edit form
+        const modalBody = document.getElementById('edit-modal-body');
+        if (!modalBody) {
+            console.error('Modal body element not found!');
+            throw new Error('Modal body element not found');
+        }
+        
+        console.log('Generating edit form...');
+        try {
+            modalBody.innerHTML = this.generateEditForm();
+            console.log('Edit form generated successfully');
+        } catch (error) {
+            console.error('Error generating edit form:', error);
+            throw error;
+        }
+        
+        // Populate the form with rule data
+        console.log('Populating edit form...');
+        try {
+            this.populateEditForm(rule);
+            console.log('Edit form populated successfully');
+        } catch (error) {
+            console.error('Error populating edit form:', error);
+            // Continue anyway, show the modal even if population fails
+        }
+        
+        // Show the modal
+        console.log('Showing edit modal...');
+        const modal = document.getElementById('edit-modal');
+        if (!modal) {
+            console.error('Modal element not found!');
+            throw new Error('Modal element not found');
+        }
+        
+        modal.classList.add('show');
+        console.log('Edit modal shown');
+    }
+    
+    generateEditForm() {
+        return `
+            <form id="edit-rule-form">
+                <div class="form-group">
+                    <label for="edit-rule-name">Rule Name</label>
+                    <input type="text" id="edit-rule-name" class="form-control" placeholder="e.g., High Value Gifts" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-rule-description">Description</label>
+                    <textarea id="edit-rule-description" class="form-control" rows="3" placeholder="Describe what this rule does"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Rule Conditions</label>
+                    <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 15px 0;">
+                        <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                            <h4 style="margin: 0 0 10px 0; color: #1976d2;"><i class="fas fa-lightbulb"></i> Enhanced Rule Builder</h4>
+                            <p style="margin: 0; color: #0d47a1;">Create complex rules like "YouTube with SuperChat > $20 OR Bilibili with gift > ¥50". Each condition group targets a specific platform with its own criteria.</p>
+                        </div>
+                        
+                        <div id="edit-condition-groups-container">
+                            <!-- Condition groups will be dynamically added here -->
+                        </div>
+                        
+                        <div style="margin: 20px 0; text-align: center;">
+                            <button type="button" class="btn btn-primary" onclick="app.addEditConditionGroup()">
+                                <i class="fas fa-plus"></i> Add Condition Group
+                            </button>
+                        </div>
+                        
+                        <div id="edit-group-logic-selector" class="logic-selector" style="display: none; margin-top: 20px; padding: 15px; background: white; border-radius: 6px;">
+                            <h5 style="margin-bottom: 10px;"><i class="fas fa-code-branch"></i> Logic Between Groups</h5>
+                            <label style="margin-right: 20px;">
+                                <input type="radio" name="edit-group-logic" value="OR" checked> 
+                                <strong>OR</strong> - Any group can match (recommended)
+                            </label>
+                            <label>
+                                <input type="radio" name="edit-group-logic" value="AND"> 
+                                <strong>AND</strong> - All groups must match
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-action-endpoint">Custom OSC Endpoint</label>
+                    <input type="text" id="edit-action-endpoint" class="form-control" placeholder="/onecomme/custom-endpoint" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Fields to Include in OSC Message</label>
+                    <div class="dynamic-field-selector">
+                        <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 10px 0; color: #1976d2;"><i class="fas fa-info-circle"></i> Dynamic Field Selection</h4>
+                            <p style="margin: 0; color: #0d47a1; font-size: 13px;">Available fields are automatically filtered based on the platforms selected in your condition groups. Platform-exclusive fields are highlighted with color coding.</p>
+                        </div>
+                        
+                        <div id="edit-field-legend" class="field-legend">
+                            <div class="legend-item">
+                                <div class="legend-color common"></div>
+                                <span>Common (All Platforms)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color youtube"></div>
+                                <span>YouTube Only</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bilibili"></div>
+                                <span>Bilibili Only</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color niconico"></div>
+                                <span>Niconico Only</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color message-type"></div>
+                                <span>Message Type Specific</span>
+                            </div>
+                        </div>
+                        
+                        <div id="edit-dynamic-field-selector-content">
+                            <!-- Dynamic field content will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="edit-block-default">
+                        <span>Block Default Routing (only send to custom endpoint)</span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="app.closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Update Rule
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+    
+    populateEditForm(rule) {
+        console.log('=== POPULATE EDIT FORM START ===');
+        console.log('Rule to populate:', rule);
+        console.log('Rule conditions:', rule.conditions);
+        
+        // Basic info
+        document.getElementById('edit-rule-name').value = rule.name || '';
+        document.getElementById('edit-rule-description').value = rule.description || '';
+        
+        // Populate conditions - use the same approach as create form
+        const conditionsContainer = document.getElementById('edit-condition-groups-container');
+        conditionsContainer.innerHTML = '';
+        
+        console.log('=== CONDITION POPULATION SECTION ===');
+        console.log('rule.conditions exists:', !!rule.conditions);
+        console.log('rule.conditions length:', rule.conditions ? rule.conditions.length : 'N/A');
+        console.log('rule.conditions content:', rule.conditions);
+        
+        if (rule.conditions && rule.conditions.length > 0) {
+            console.log('✅ CONDITIONS FOUND - Starting population process');
+            console.log('Conditions to populate:', rule.conditions);
+            
+            // Add one condition group
+            this.addEditConditionGroup();
+            
+            // Get the first condition group
+            const groupCard = conditionsContainer.querySelector('.condition-group-card');
+            if (groupCard) {
+                const groupId = groupCard.dataset.groupId;
+                console.log('Created condition group with ID:', groupId);
+                
+                // Try to determine the source/platform from the first condition's field
+                let detectedSource = 'youtube'; // default
+                if (rule.conditions[0]) {
+                    const field = rule.conditions[0].field;
+                    // Detect platform based on field names
+                    if (['amount', 'currency', 'isMember', 'isModerator', 'isOwner'].includes(field)) {
+                        detectedSource = 'youtube';
+                    } else if (['coins', 'giftName', 'userLevel', 'guardLevel', 'isVip', 'isSvip', 'isGuard'].includes(field)) {
+                        detectedSource = 'bilibili';
+                    } else if (['isPremium', 'userId', 'userColor', 'userSize'].includes(field)) {
+                        detectedSource = 'niconico';
+                    }
+                }
+                
+                console.log('Detected source:', detectedSource);
+                
+                // Set the detected source
+                const sourceInput = groupCard.querySelector(`input[name="edit-source-${groupId}"][value="${detectedSource}"]`);
+                if (sourceInput) {
+                    sourceInput.checked = true;
+                    console.log('Set source input to:', detectedSource);
+                    
+                    // Set a flag to indicate we're populating existing conditions
+                    this.isPopulatingExistingConditions = true;
+                    
+                    // Trigger source change
+                    this.onEditSourceChange(detectedSource, groupId);
+                    
+                    // Populate the conditions after source change completes
+                    setTimeout(() => {
+                        console.log('About to populate conditions for group:', groupId);
+                        console.log('Conditions to populate:', rule.conditions);
+                        
+                        this.populateEditConditionsForGroup(groupId, rule.conditions);
+                        
+                        // Clear the flag after population
+                        this.isPopulatingExistingConditions = false;
+                    }, 400);
+                } else {
+                    console.warn('Source input not found for:', detectedSource);
+                }
+            } else {
+                console.warn('Group card not found after creation');
+            }
+            
+            // Set group logic
+            const logicRadio = document.querySelector(`input[name="edit-group-logic"][value="${rule.conditionLogic || 'OR'}"]`);
+            if (logicRadio) logicRadio.checked = true;
+            
+            this.updateEditGroupLogicVisibility();
+        } else {
+            console.log('❌ NO CONDITIONS FOUND - Adding empty condition group');
+            console.log('Adding empty condition group because rule has no conditions');
+            // Add empty condition group
+            this.addEditConditionGroup();
+        }
+        
+        // FALLBACK: Try direct condition population after a delay
+        setTimeout(() => {
+            console.log('=== FALLBACK CONDITION POPULATION ===');
+            if (rule.conditions && rule.conditions.length > 0) {
+                console.log('Attempting fallback condition population');
+                this.directlyPopulateConditions(rule.conditions);
+            }
+        }, 1000);
+        
+        // Populate actions - use dynamic field selector
+        document.getElementById('edit-action-endpoint').value = '';
+        if (rule.actions && rule.actions.length > 0) {
+            const action = rule.actions[0];
+            document.getElementById('edit-action-endpoint').value = action.endpoint || '';
+        }
+        
+        // Set block default
+        document.getElementById('edit-block-default').checked = rule.blockDefault || false;
+        
+        // Update dynamic field selector
+        this.updateEditDynamicFieldSelector();
+        
+        // Restore field selections after dynamic field selector is populated
+        if (rule.actions && rule.actions.length > 0 && rule.actions[0].fields) {
+            setTimeout(() => {
+                this.restoreEditFieldSelections(rule.actions[0].fields);
+            }, 300); // Increased timeout to ensure dynamic content is loaded
+        }
+        
+        // Setup form submission
+        document.getElementById('edit-rule-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.updateRule();
+        });
+    }
+    
+    populateEditConditionsForGroup(groupId, conditions) {
+        console.log(`Populating conditions for group ${groupId}:`, conditions);
+        
+        if (!conditions || conditions.length === 0) {
+            console.log('No conditions to populate');
+            return;
+        }
+        
+        // Function to attempt population
+        const attemptPopulation = (attempt = 1) => {
+            console.log(`Attempt ${attempt} to populate conditions for group ${groupId}`);
+            
+            const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+            if (!conditionsListContainer) {
+                if (attempt < 5) {
+                    console.warn(`Conditions list container not found for group: ${groupId}, retrying in ${attempt * 100}ms`);
+                    setTimeout(() => attemptPopulation(attempt + 1), attempt * 100);
+                    return;
+                } else {
+                    console.error(`Failed to find conditions list container after 5 attempts: ${groupId}`);
+                    return;
+                }
+            }
+            
+            // Remove any existing conditions first
+            conditionsListContainer.innerHTML = '';
+            console.log('Cleared existing conditions');
+            
+            // Add each existing condition
+            conditions.forEach((condition, index) => {
+                console.log(`Adding condition ${index + 1}:`, condition);
+                // Try to detect the source from the condition field
+                let source = 'youtube'; // default
+                const field = condition.field;
+                if (['coins', 'giftName', 'userLevel', 'guardLevel', 'isVip', 'isSvip', 'isGuard'].includes(field)) {
+                    source = 'bilibili';
+                } else if (['isPremium', 'userId', 'userColor', 'userSize'].includes(field)) {
+                    source = 'niconico';
+                }
+                
+                try {
+                    this.addEditConditionToGroup(groupId, source, null, condition);
+                    console.log(`Successfully added condition ${index + 1}`);
+                } catch (error) {
+                    console.error(`Error adding condition ${index + 1}:`, error);
+                }
+            });
+            
+            console.log(`Completed adding ${conditions.length} conditions to group ${groupId}`);
+            
+            // Update the group summary after populating conditions
+            try {
+                this.updateEditGroupSummary(groupId);
+            } catch (error) {
+                console.error('Error updating group summary:', error);
+            }
+        };
+        
+        // Start the population process
+        attemptPopulation();
+    }
+    
+    // Edit Modal Condition Group Methods (matching create form)
+    addEditConditionGroup() {
+        const container = document.getElementById('edit-condition-groups-container');
+        const groupId = 'edit-group-' + Date.now();
+        
+        const groupCard = document.createElement('div');
+        groupCard.className = 'condition-group-card';
+        groupCard.dataset.groupId = groupId;
+        
+        groupCard.innerHTML = this.generateEditConditionGroupHTML(groupId);
+        container.appendChild(groupCard);
+        
+        // Show group logic selector if more than one group
+        this.updateEditGroupLogicVisibility();
+        
+        // Initialize the first source as selected
+        const firstSource = groupCard.querySelector('.source-option input[type="radio"]');
+        if (firstSource) {
+            firstSource.checked = true;
+            this.onEditSourceChange(firstSource.value, groupId);
+        }
+    }
+    
+    generateEditConditionGroupHTML(groupId) {
+        // Check if SourceSchemaHelpers is available
+        let sources = [];
+        try {
+            sources = SourceSchemaHelpers.getAllSources();
+        } catch (error) {
+            console.warn('SourceSchemaHelpers not available, using fallback');
+            sources = ['youtube', 'bilibili', 'niconico'];
+        }
+        
+        return `
+            <button type="button" class="group-remove-btn" onclick="app.removeEditConditionGroup('${groupId}')">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="condition-group-header">
+                <h5 style="margin: 0;"><i class="fas fa-layer-group"></i> Condition Group</h5>
+            </div>
+            
+            <div class="source-selector">
+                <label style="font-weight: bold; margin-right: 10px;">Platform:</label>
+                ${sources.map(source => {
+                    let schema;
+                    try {
+                        schema = SourceSchemas[source];
+                    } catch (error) {
+                        // Fallback schema
+                        schema = {
+                            name: source.charAt(0).toUpperCase() + source.slice(1),
+                            icon: 'fas fa-video',
+                            color: '#667eea'
+                        };
+                    }
+                    return `
+                        <label class="source-option">
+                            <input type="radio" name="edit-source-${groupId}" value="${source}" onchange="app.onEditSourceChange('${source}', '${groupId}')">
+                            <i class="${schema.icon} source-icon" style="color: ${schema.color};"></i>
+                            ${schema.name}
+                        </label>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div id="edit-message-type-${groupId}" class="message-type-selector" style="display: none;">
+                <label style="font-weight: bold;">Message Type:</label>
+                <div class="message-type-options" id="edit-message-type-options-${groupId}">
+                    <!-- Message type options will be populated here -->
+                </div>
+            </div>
+            
+            <div id="edit-conditions-${groupId}" class="conditions-list">
+                <div class="empty-conditions">
+                    <i class="fas fa-filter" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Select a platform to add conditions</p>
+                </div>
+            </div>
+            
+            <div id="edit-group-summary-${groupId}" class="group-summary" style="display: none;"></div>
+        `;
+    }
+    
+    onEditSourceChange(source, groupId) {
+        let schema;
+        try {
+            schema = SourceSchemas[source];
+            if (!schema) {
+                console.warn(`Schema not found for source: ${source}`);
+                return;
+            }
+        } catch (error) {
+            console.warn(`Error getting schema for ${source}:`, error);
+            return;
+        }
+        
+        // Update message type selector
+        const messageTypeContainer = document.getElementById(`edit-message-type-${groupId}`);
+        const messageTypeOptions = document.getElementById(`edit-message-type-options-${groupId}`);
+        
+        if (!messageTypeContainer || !messageTypeOptions) {
+            console.warn('Message type containers not found');
+            return;
+        }
+        
+        try {
+            if (schema.messageTypes && schema.messageTypes.length > 1) {
+                messageTypeContainer.style.display = 'block';
+                messageTypeOptions.innerHTML = schema.messageTypes.map(type => `
+                    <div class="message-type-option" onclick="app.onEditMessageTypeChange('${type}', '${groupId}')">
+                        ${type.charAt(0).toUpperCase() + type.slice(1)}
+                    </div>
+                `).join('');
+                
+                // Select first message type by default
+                const firstOption = messageTypeOptions.querySelector('.message-type-option');
+                if (firstOption) {
+                    firstOption.classList.add('selected');
+                    this.onEditMessageTypeChange(schema.messageTypes[0], groupId);
+                }
+            } else {
+                messageTypeContainer.style.display = 'none';
+                this.updateEditConditionsForGroup(groupId, source, schema.messageTypes ? schema.messageTypes[0] : null);
+            }
+            
+            this.updateEditGroupSummary(groupId);
+            
+            // Update dynamic field selector when sources change
+            this.updateEditDynamicFieldSelector();
+        } catch (error) {
+            console.error('Error in onEditSourceChange:', error);
+        }
+    }
+    
+    onEditMessageTypeChange(messageType, groupId) {
+        // Update visual selection
+        const options = document.querySelectorAll(`#edit-message-type-options-${groupId} .message-type-option`);
+        options.forEach(option => {
+            option.classList.toggle('selected', option.textContent.toLowerCase().trim() === messageType);
+        });
+        
+        // Get current source
+        const sourceInput = document.querySelector(`input[name="edit-source-${groupId}"]:checked`);
+        if (sourceInput) {
+            this.updateEditConditionsForGroup(groupId, sourceInput.value, messageType);
+        }
+        
+        this.updateEditGroupSummary(groupId);
+    }
+    
+    updateEditConditionsForGroup(groupId, source, messageType) {
+        const conditionsContainer = document.getElementById(`edit-conditions-${groupId}`);
+        if (!conditionsContainer) {
+            console.warn(`Conditions container not found for group: ${groupId}`);
+            return;
+        }
+        
+        let fields = [];
+        try {
+            fields = SourceSchemaHelpers.getAvailableFields(source, messageType);
+        } catch (error) {
+            console.warn('Error getting available fields, using fallback:', error);
+            // Fallback fields
+            fields = [
+                { name: 'name', label: 'Name' },
+                { name: 'comment', label: 'Comment' },
+                { name: 'amount', label: 'Amount' },
+                { name: 'platform', label: 'Platform' }
+            ];
+        }
+        
+        conditionsContainer.innerHTML = `
+            <div style="margin-bottom: 15px;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.addEditConditionToGroup('${groupId}', '${source}', '${messageType}')">
+                    <i class="fas fa-plus"></i> Add Condition
+                </button>
+            </div>
+            <div id="edit-conditions-list-${groupId}">
+                <!-- Conditions will be added here -->
+            </div>
+        `;
+        
+        // Don't add a default condition if we're about to populate existing conditions
+        // Check if we're in edit mode with existing conditions or if we're actively populating
+        if ((this.editingRule && this.editingRule.conditions && this.editingRule.conditions.length > 0) || 
+            this.isPopulatingExistingConditions) {
+            console.log('Skipping default condition creation - will populate existing conditions or already populating');
+        } else {
+            // Add one condition by default only for new condition groups
+            try {
+                this.addEditConditionToGroup(groupId, source, messageType);
+            } catch (error) {
+                console.error('Error adding default condition:', error);
+            }
+        }
+    }
+    
+    addEditConditionToGroup(groupId, source, messageType, existingCondition = null) {
+        const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+        if (!conditionsListContainer) {
+            console.warn(`Conditions list container not found for group: ${groupId}`);
+            return;
+        }
+        
+        const conditionId = `edit-condition-${groupId}-${Date.now()}`;
+        
+        let fields = [];
+        try {
+            fields = SourceSchemaHelpers.getAvailableFields(source, messageType);
+        } catch (error) {
+            console.warn('Error getting available fields for condition, using fallback:', error);
+            fields = [
+                { name: 'name', label: 'Name' },
+                { name: 'comment', label: 'Comment' },
+                { name: 'amount', label: 'Amount' },
+                { name: 'platform', label: 'Platform' }
+            ];
+        }
+        
+        const conditionElement = document.createElement('div');
+        conditionElement.className = 'single-condition';
+        conditionElement.dataset.conditionId = conditionId;
+        
+        let operatorOptions = '<option value="">Select Operator</option>';
+        let fieldValue = '';
+        let dataType = '-';
+        let isEnabled = '';
+        
+        if (existingCondition) {
+            // Get available operators for the field
+            try {
+                operatorOptions += this.getOperatorOptionsForField(existingCondition.field, source, messageType, existingCondition.operator);
+            } catch (error) {
+                // Fallback operators
+                const operators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than'];
+                operatorOptions += operators.map(op => 
+                    `<option value="${op}" ${existingCondition.operator === op ? 'selected' : ''}>${op.replace('_', ' ')}</option>`
+                ).join('');
+            }
+            fieldValue = existingCondition.value || '';
+            dataType = existingCondition.type || existingCondition.dataType || 'string';
+            isEnabled = ''; // enabled
+        } else {
+            isEnabled = 'disabled';
+        }
+        
+        conditionElement.innerHTML = `
+            <select class="form-control" onchange="app.onEditFieldChange('${conditionId}', '${source}', '${messageType}')">
+                <option value="">Select Field</option>
+                ${fields.map(field => `<option value="${field.name}" ${existingCondition && existingCondition.field === field.name ? 'selected' : ''}>${field.label}</option>`).join('')}
+            </select>
+            <select class="form-control" ${isEnabled}>
+                ${operatorOptions}
+            </select>
+            <input type="text" class="form-control" placeholder="Value" value="${fieldValue}" ${isEnabled}>
+            <span class="condition-type-display" style="font-size: 12px; color: #666;">${dataType}</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="app.removeEditConditionFromGroup('${conditionId}', '${groupId}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        conditionsListContainer.appendChild(conditionElement);
+        
+        // If we have an existing condition, trigger field change to populate operators
+        if (existingCondition) {
+            setTimeout(() => {
+                this.onEditFieldChange(conditionId, source, messageType);
+            }, 50);
+        }
+        
+        // Add condition logic separator if there are multiple conditions
+        const existingConditions = conditionsListContainer.querySelectorAll('.single-condition');
+        if (existingConditions.length > 1) {
+            this.updateEditConditionLogicDisplay(groupId);
+        }
+        
+        this.updateEditGroupSummary(groupId);
+    }
+    
+    getOperatorOptionsForField(fieldName, source, messageType, selectedOperator = null) {
+        let field;
+        try {
+            field = SourceSchemaHelpers.getField(source, fieldName, messageType);
+        } catch (error) {
+            console.warn('Error getting field schema, using fallback operators');
+            // Fallback operators based on field name
+            let operators = ['equals', 'not_equals'];
+            if (['amount', 'coins', 'userLevel', 'guardLevel'].includes(fieldName)) {
+                operators = ['equals', 'not_equals', 'greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'];
+            } else if (['name', 'comment', 'giftName'].includes(fieldName)) {
+                operators = ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with'];
+            }
+            
+            return operators.map(op => {
+                const label = this.getOperatorLabel(op);
+                return `<option value="${op}" ${selectedOperator === op ? 'selected' : ''}>${label}</option>`;
+            }).join('');
+        }
+        
+        if (!field) return '';
+        
+        try {
+            return field.operators.map(op => {
+                const label = OperatorLabels[op] || this.getOperatorLabel(op);
+                return `<option value="${op}" ${selectedOperator === op ? 'selected' : ''}>${label}</option>`;
+            }).join('');
+        } catch (error) {
+            console.warn('Error with OperatorLabels, using fallback');
+            return field.operators.map(op => 
+                `<option value="${op}" ${selectedOperator === op ? 'selected' : ''}>${op.replace('_', ' ')}</option>`
+            ).join('');
+        }
+    }
+    
+    getOperatorLabel(operator) {
+        const labels = {
+            'equals': '=',
+            'not_equals': '≠',
+            'greater_than': '>',
+            'greater_than_or_equal': '≥',
+            'less_than': '<',
+            'less_than_or_equal': '≤',
+            'contains': 'contains',
+            'not_contains': 'not contains',
+            'starts_with': 'starts with',
+            'ends_with': 'ends with',
+            'regex': 'matches regex'
+        };
+        return labels[operator] || operator.replace('_', ' ');
+    }
+    
+    // Debug method for testing condition population
+    debugPopulateConditions() {
+        if (!this.editingRule) {
+            console.log('No rule being edited');
+            return;
+        }
+        
+        console.log('Current editing rule:', this.editingRule);
+        console.log('Rule conditions:', this.editingRule.conditions);
+        
+        // Find the first condition group
+        const groupCard = document.querySelector('#edit-condition-groups-container .condition-group-card');
+        if (groupCard) {
+            const groupId = groupCard.dataset.groupId;
+            console.log('Found group card with ID:', groupId);
+            
+            // Try to populate conditions
+            this.populateEditConditionsForGroup(groupId, this.editingRule.conditions);
+        } else {
+            console.log('No condition group card found');
+        }
+    }
+    
+    // Simple debug method to examine rules
+    debugRules() {
+        console.log('=== ALL RULES DEBUG ===');
+        console.log('Total rules:', this.rules.length);
+        this.rules.forEach((rule, index) => {
+            console.log(`Rule ${index}:`, {
+                id: rule.id,
+                name: rule.name,
+                conditions: rule.conditions,
+                actions: rule.actions,
+                enabled: rule.enabled
+            });
+        });
+        
+        if (this.editingRule) {
+            console.log('Currently editing rule:', this.editingRule);
+        } else {
+            console.log('No rule currently being edited');
+        }
+    }
+    
+    // Direct method to populate conditions without complex timing logic
+    directlyPopulateConditions(conditions) {
+        console.log('=== DIRECT CONDITION POPULATION ===');
+        console.log('Conditions to populate:', conditions);
+        
+        // Find the first condition group
+        const groupCard = document.querySelector('#edit-condition-groups-container .condition-group-card');
+        if (!groupCard) {
+            console.error('No condition group card found');
+            return;
+        }
+        
+        const groupId = groupCard.dataset.groupId;
+        console.log('Found group card with ID:', groupId);
+        
+        // Find the conditions list container
+        const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+        if (!conditionsListContainer) {
+            console.error('Conditions list container not found:', `edit-conditions-list-${groupId}`);
+            return;
+        }
+        
+        console.log('Found conditions list container');
+        
+        // Clear existing conditions
+        conditionsListContainer.innerHTML = '';
+        
+        // Add each condition directly
+        conditions.forEach((condition, index) => {
+            console.log(`Creating condition ${index + 1}:`, condition);
+            
+            const conditionId = `direct-condition-${Date.now()}-${index}`;
+            const conditionElement = document.createElement('div');
+            conditionElement.className = 'single-condition';
+            conditionElement.dataset.conditionId = conditionId;
+            
+            // Create simple HTML for the condition without complex logic
+            conditionElement.innerHTML = `
+                <select class="form-control">
+                    <option value="">Select Field</option>
+                    <option value="name" ${condition.field === 'name' ? 'selected' : ''}>Name</option>
+                    <option value="comment" ${condition.field === 'comment' ? 'selected' : ''}>Comment</option>
+                    <option value="amount" ${condition.field === 'amount' ? 'selected' : ''}>Amount</option>
+                    <option value="currency" ${condition.field === 'currency' ? 'selected' : ''}>Currency</option>
+                    <option value="platform" ${condition.field === 'platform' ? 'selected' : ''}>Platform</option>
+                    <option value="coins" ${condition.field === 'coins' ? 'selected' : ''}>Coins</option>
+                    <option value="giftName" ${condition.field === 'giftName' ? 'selected' : ''}>Gift Name</option>
+                    <option value="userLevel" ${condition.field === 'userLevel' ? 'selected' : ''}>User Level</option>
+                    <option value="isPremium" ${condition.field === 'isPremium' ? 'selected' : ''}>Is Premium</option>
+                </select>
+                <select class="form-control">
+                    <option value="">Select Operator</option>
+                    <option value="equals" ${condition.operator === 'equals' ? 'selected' : ''}>equals</option>
+                    <option value="not_equals" ${condition.operator === 'not_equals' ? 'selected' : ''}>not equals</option>
+                    <option value="greater_than" ${condition.operator === 'greater_than' ? 'selected' : ''}>greater than</option>
+                    <option value="less_than" ${condition.operator === 'less_than' ? 'selected' : ''}>less than</option>
+                    <option value="contains" ${condition.operator === 'contains' ? 'selected' : ''}>contains</option>
+                </select>
+                <input type="text" class="form-control" value="${condition.value || ''}" placeholder="Value">
+                <span class="condition-type-display" style="font-size: 12px; color: #666;">${condition.dataType || condition.type || 'string'}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            
+            conditionsListContainer.appendChild(conditionElement);
+            console.log(`Added condition ${index + 1} successfully`);
+        });
+        
+        console.log(`Direct population completed: ${conditions.length} conditions added`);
+    }
+    
+    onEditFieldChange(conditionId, source, messageType) {
+        const conditionElement = document.querySelector(`[data-condition-id="${conditionId}"]`);
+        const fieldSelect = conditionElement.querySelector('select:first-child');
+        const operatorSelect = conditionElement.querySelector('select:nth-child(2)');
+        const valueInput = conditionElement.querySelector('input');
+        const typeDisplay = conditionElement.querySelector('.condition-type-display');
+        
+        const fieldName = fieldSelect.value;
+        if (!fieldName) {
+            operatorSelect.disabled = true;
+            valueInput.disabled = true;
+            operatorSelect.innerHTML = '<option value="">Select Operator</option>';
+            typeDisplay.textContent = '-';
+            return;
+        }
+        
+        const field = SourceSchemaHelpers.getField(source, fieldName, messageType);
+        if (!field) return;
+        
+        // Populate operators
+        operatorSelect.disabled = false;
+        operatorSelect.innerHTML = `
+            <option value="">Select Operator</option>
+            ${field.operators.map(op => `<option value="${op}">${OperatorLabels[op]}</option>`).join('')}
+        `;
+        
+        // Enable value input and show type
+        valueInput.disabled = false;
+        valueInput.placeholder = field.type === 'boolean' ? 'true/false' : `Enter ${field.type}`;
+        typeDisplay.textContent = field.type;
+        
+        // Add change listener for operator and value to update summary
+        operatorSelect.onchange = () => this.updateEditGroupSummary(conditionId.split('-')[2]);
+        valueInput.onchange = () => this.updateEditGroupSummary(conditionId.split('-')[2]);
+    }
+    
+    removeEditConditionFromGroup(conditionId, groupId) {
+        const conditionElement = document.querySelector(`[data-condition-id="${conditionId}"]`);
+        const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+        const conditionCount = conditionsListContainer.querySelectorAll('.single-condition').length;
+        
+        if (conditionCount > 1) {
+            conditionElement.remove();
+            this.updateEditConditionLogicDisplay(groupId);
+            this.updateEditGroupSummary(groupId);
+        } else {
+            this.showNotification('At least one condition is required per group', 'warning');
+        }
+    }
+    
+    updateEditConditionLogicDisplay(groupId) {
+        const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+        const conditions = conditionsListContainer.querySelectorAll('.single-condition');
+        
+        // Remove existing logic displays
+        conditionsListContainer.querySelectorAll('.condition-logic-inline').forEach(el => el.remove());
+        
+        // Add logic displays between conditions
+        conditions.forEach((condition, index) => {
+            if (index < conditions.length - 1) {
+                const logicDiv = document.createElement('div');
+                logicDiv.className = 'condition-logic-inline';
+                logicDiv.innerHTML = `
+                    <label>
+                        <input type="radio" name="edit-condition-logic-${groupId}" value="AND" checked>
+                        AND
+                    </label>
+                    <label style="margin-left: 15px;">
+                        <input type="radio" name="edit-condition-logic-${groupId}" value="OR">
+                        OR
+                    </label>
+                `;
+                condition.parentNode.insertBefore(logicDiv, condition.nextSibling);
+            }
+        });
+    }
+    
+    updateEditGroupSummary(groupId) {
+        const summaryDiv = document.getElementById(`edit-group-summary-${groupId}`);
+        const sourceInput = document.querySelector(`input[name="edit-source-${groupId}"]:checked`);
+        
+        if (!sourceInput) {
+            summaryDiv.style.display = 'none';
+            return;
+        }
+        
+        const source = sourceInput.value;
+        const schema = SourceSchemas[source];
+        const selectedMessageType = document.querySelector(`#edit-message-type-options-${groupId} .message-type-option.selected`);
+        const messageType = selectedMessageType ? selectedMessageType.textContent.toLowerCase().trim() : null;
+        
+        let summary = `<strong>Platform:</strong> ${schema.name}`;
+        if (messageType) {
+            summary += ` <strong>Type:</strong> ${messageType}`;
+        }
+        
+        const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+        const conditions = conditionsListContainer.querySelectorAll('.single-condition');
+        const validConditions = Array.from(conditions).filter(condition => {
+            const fieldSelect = condition.querySelector('select:first-child');
+            const operatorSelect = condition.querySelector('select:nth-child(2)');
+            const valueInput = condition.querySelector('input');
+            return fieldSelect.value && operatorSelect.value && valueInput.value;
+        });
+        
+        if (validConditions.length > 0) {
+            summary += ` <strong>Conditions:</strong> ${validConditions.length} condition(s)`;
+        }
+        
+        summaryDiv.innerHTML = summary;
+        summaryDiv.style.display = 'block';
+    }
+    
+    removeEditConditionGroup(groupId) {
+        const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
+        const container = document.getElementById('edit-condition-groups-container');
+        const groupCount = container.querySelectorAll('.condition-group-card').length;
+        
+        if (groupCount > 1) {
+            groupCard.remove();
+            this.updateEditGroupLogicVisibility();
+            
+            // Update dynamic field selector when groups are removed
+            this.updateEditDynamicFieldSelector();
+        } else {
+            this.showNotification('At least one condition group is required', 'warning');
+        }
+    }
+    
+    updateEditGroupLogicVisibility() {
+        const container = document.getElementById('edit-condition-groups-container');
+        const groupCount = container.querySelectorAll('.condition-group-card').length;
+        const logicSelector = document.getElementById('edit-group-logic-selector');
+        
+        logicSelector.style.display = groupCount > 1 ? 'block' : 'none';
+    }
+    
+    // Edit Dynamic Field Selector Methods
+    updateEditDynamicFieldSelector() {
+        const selectedSources = this.getEditSelectedSources();
+        const container = document.getElementById('edit-dynamic-field-selector-content');
+        
+        if (!container) {
+            console.warn('Dynamic field selector container not found');
+            return;
+        }
+        
+        if (selectedSources.length === 0) {
+            container.innerHTML = `
+                <div class="no-fields-message">
+                    <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Select platforms in your condition groups to see available fields</p>
+                </div>
+            `;
+            return;
+        }
+        
+        try {
+            const availableFields = SourceSchemaHelpers.getAvailableOutputFields(selectedSources);
+            this.renderEditDynamicFieldSelector(availableFields, selectedSources);
+        } catch (error) {
+            console.warn('Error getting available fields, using fallback:', error);
+            // Fallback to basic field selection with platform-specific fields
+            container.innerHTML = `
+                <div class="field-section">
+                    <div class="field-section-title">
+                        <i class="fas fa-layer-group"></i> Common Fields (All Platforms)
+                    </div>
+                    <div class="field-grid">
+                        <div class="field-option common available">
+                            <input type="checkbox" value="name" checked>
+                            <div class="field-label">
+                                Name (username)
+                                <div class="field-help-text">User's display name</div>
+                            </div>
+                            <span class="field-badge">COMMON</span>
+                        </div>
+                        <div class="field-option common available">
+                            <input type="checkbox" value="comment" checked>
+                            <div class="field-label">
+                                Comment (message text)
+                                <div class="field-help-text">The actual message content</div>
+                            </div>
+                            <span class="field-badge">COMMON</span>
+                        </div>
+                        <div class="field-option common available">
+                            <input type="checkbox" value="platform">
+                            <div class="field-label">
+                                Platform (source)
+                                <div class="field-help-text">Message source platform</div>
+                            </div>
+                            <span class="field-badge">COMMON</span>
+                        </div>
+                        <div class="field-option common available">
+                            <input type="checkbox" value="timestamp">
+                            <div class="field-label">
+                                Timestamp
+                                <div class="field-help-text">When the message was sent</div>
+                            </div>
+                            <span class="field-badge">COMMON</span>
+                        </div>
+                        <div class="field-option common available">
+                            <input type="checkbox" value="service">
+                            <div class="field-label">
+                                Service
+                                <div class="field-help-text">Platform service identifier</div>
+                            </div>
+                            <span class="field-badge">COMMON</span>
+                        </div>
+                        <div class="field-option common available">
+                            <input type="checkbox" value="type">
+                            <div class="field-label">
+                                Type
+                                <div class="field-help-text">Message type (comment, superchat, etc.)</div>
+                            </div>
+                            <span class="field-badge">COMMON</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="field-section">
+                    <div class="field-section-title">
+                        <i class="fas fa-layer-group"></i> YouTube Exclusive Fields
+                    </div>
+                    <div class="field-grid">
+                        <div class="field-option platform-youtube available">
+                            <input type="checkbox" value="amount">
+                            <div class="field-label">
+                                Amount
+                                <div class="field-help-text">SuperChat donation amount</div>
+                            </div>
+                            <span class="field-badge">YOUTUBE</span>
+                        </div>
+                        <div class="field-option platform-youtube available">
+                            <input type="checkbox" value="currency">
+                            <div class="field-label">
+                                Currency
+                                <div class="field-help-text">Currency code (USD, JPY, etc.)</div>
+                            </div>
+                            <span class="field-badge">YOUTUBE</span>
+                        </div>
+                        <div class="field-option platform-youtube available">
+                            <input type="checkbox" value="isMember">
+                            <div class="field-label">
+                                Is Member
+                                <div class="field-help-text">Channel member status</div>
+                            </div>
+                            <span class="field-badge">YOUTUBE</span>
+                        </div>
+                        <div class="field-option platform-youtube available">
+                            <input type="checkbox" value="isModerator">
+                            <div class="field-label">
+                                Is Moderator
+                                <div class="field-help-text">Channel moderator status</div>
+                            </div>
+                            <span class="field-badge">YOUTUBE</span>
+                        </div>
+                        <div class="field-option platform-youtube available">
+                            <input type="checkbox" value="isOwner">
+                            <div class="field-label">
+                                Is Owner
+                                <div class="field-help-text">Channel owner status</div>
+                            </div>
+                            <span class="field-badge">YOUTUBE</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="field-section">
+                    <div class="field-section-title">
+                        <i class="fas fa-layer-group"></i> Bilibili Exclusive Fields
+                    </div>
+                    <div class="field-grid">
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="coins">
+                            <div class="field-label">
+                                Coins
+                                <div class="field-help-text">Gift value in coins</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="giftName">
+                            <div class="field-label">
+                                Gift Name
+                                <div class="field-help-text">Name of the gift sent</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="userLevel">
+                            <div class="field-label">
+                                User Level
+                                <div class="field-help-text">User's level on platform</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="guardLevel">
+                            <div class="field-label">
+                                Guard Level
+                                <div class="field-help-text">User's guard/VIP level</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="isVip">
+                            <div class="field-label">
+                                Is VIP
+                                <div class="field-help-text">VIP user status</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="isSvip">
+                            <div class="field-label">
+                                Is SVIP
+                                <div class="field-help-text">Super VIP user status</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                        <div class="field-option platform-bilibili available">
+                            <input type="checkbox" value="isGuard">
+                            <div class="field-label">
+                                Is Guard
+                                <div class="field-help-text">Guard user status</div>
+                            </div>
+                            <span class="field-badge">BILIBILI</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="field-section">
+                    <div class="field-section-title">
+                        <i class="fas fa-layer-group"></i> Niconico Exclusive Fields
+                    </div>
+                    <div class="field-grid">
+                        <div class="field-option platform-niconico available">
+                            <input type="checkbox" value="isPremium">
+                            <div class="field-label">
+                                Is Premium
+                                <div class="field-help-text">Premium user status</div>
+                            </div>
+                            <span class="field-badge">NICONICO</span>
+                        </div>
+                        <div class="field-option platform-niconico available">
+                            <input type="checkbox" value="userId">
+                            <div class="field-label">
+                                User ID
+                                <div class="field-help-text">Niconico user identifier</div>
+                            </div>
+                            <span class="field-badge">NICONICO</span>
+                        </div>
+                        <div class="field-option platform-niconico available">
+                            <input type="checkbox" value="userColor">
+                            <div class="field-label">
+                                User Color
+                                <div class="field-help-text">Comment color preference</div>
+                            </div>
+                            <span class="field-badge">NICONICO</span>
+                        </div>
+                        <div class="field-option platform-niconico available">
+                            <input type="checkbox" value="userSize">
+                            <div class="field-label">
+                                User Size
+                                <div class="field-help-text">Comment size preference</div>
+                            </div>
+                            <span class="field-badge">NICONICO</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    getEditSelectedSources() {
+        const sources = new Set();
+        const conditionGroups = document.querySelectorAll('#edit-condition-groups-container .condition-group-card');
+        
+        conditionGroups.forEach(group => {
+            const groupId = group.dataset.groupId;
+            const sourceInput = group.querySelector(`input[name="edit-source-${groupId}"]:checked`);
+            if (sourceInput) {
+                sources.add(sourceInput.value);
+            }
+        });
+        
+        return Array.from(sources);
+    }
+    
+    renderEditDynamicFieldSelector(fields, selectedSources) {
+        const container = document.getElementById('edit-dynamic-field-selector-content');
+        
+        // Group fields by category
+        const fieldsByCategory = {
+            common: fields.filter(f => f.category === 'common'),
+            platform: fields.filter(f => f.category === 'platform'),
+            'message-type': fields.filter(f => f.category === 'message-type')
+        };
+        
+        let html = '';
+        
+        // Render common fields
+        if (fieldsByCategory.common.length > 0) {
+            html += this.renderEditFieldSection('Common Fields', fieldsByCategory.common, 'common');
+        }
+        
+        // Render platform-specific fields
+        if (fieldsByCategory.platform.length > 0) {
+            const platformFields = {};
+            fieldsByCategory.platform.forEach(field => {
+                const platform = field.platforms[0];
+                if (!platformFields[platform]) {
+                    platformFields[platform] = [];
+                }
+                platformFields[platform].push(field);
+            });
+            
+            Object.keys(platformFields).forEach(platform => {
+                const schema = SourceSchemas[platform];
+                const title = `${schema.name} Exclusive Fields`;
+                html += this.renderEditFieldSection(title, platformFields[platform], `platform-${platform}`);
+            });
+        }
+        
+        // Render message type fields
+        if (fieldsByCategory['message-type'].length > 0) {
+            html += this.renderEditFieldSection('Message Type Specific Fields', fieldsByCategory['message-type'], 'message-type');
+        }
+        
+        container.innerHTML = html;
+        
+        // Restore previously selected fields
+        this.restoreEditFieldSelections();
+    }
+    
+    renderEditFieldSection(title, fields, categoryClass) {
+        if (fields.length === 0) return '';
+        
+        return `
+            <div class="field-section">
+                <div class="field-section-title">
+                    <i class="fas fa-layer-group"></i> ${title}
+                </div>
+                <div class="field-grid">
+                    ${fields.map(field => this.renderEditFieldOption(field, categoryClass)).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderEditFieldOption(field, categoryClass) {
+        const isAvailable = field.available !== false;
+        const availabilityClass = isAvailable ? 'available' : 'unavailable';
+        
+        let badgeText = '';
+        let helpText = '';
+        
+        if (field.category === 'common') {
+            badgeText = 'COMMON';
+            helpText = 'Available on all platforms';
+        } else if (field.category === 'platform') {
+            const schema = SourceSchemas[field.platforms[0]];
+            badgeText = schema.name.toUpperCase();
+            helpText = `Only available for ${schema.name} messages`;
+        } else if (field.category === 'message-type') {
+            badgeText = 'TYPE';
+            helpText = `Available for ${field.messageTypes.join(', ')} messages`;
+        }
+        
+        return `
+            <div class="field-option ${categoryClass} ${availabilityClass}">
+                <input type="checkbox" value="${field.name}" ${!isAvailable ? 'disabled' : ''}>
+                <div class="field-label">
+                    ${field.label}
+                    <div class="field-help-text">${helpText}</div>
+                </div>
+                <span class="field-badge">${badgeText}</span>
+            </div>
+        `;
+    }
+    
+    restoreEditFieldSelections(selectedFields = []) {
+        console.log('Restoring field selections:', selectedFields);
+        
+        // If no specific fields provided, try to get them from the editing rule
+        if (!selectedFields || selectedFields.length === 0) {
+            if (this.editingRule && this.editingRule.actions && this.editingRule.actions[0] && this.editingRule.actions[0].fields) {
+                selectedFields = this.editingRule.actions[0].fields;
+            }
+        }
+        
+        if (!selectedFields || selectedFields.length === 0) {
+            console.log('No fields to restore');
+            return;
+        }
+        
+        // Clear all existing selections first
+        document.querySelectorAll('#edit-dynamic-field-selector-content input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Restore the selected fields
+        let restoredCount = 0;
+        selectedFields.forEach(fieldName => {
+            const checkbox = document.querySelector(`#edit-dynamic-field-selector-content input[value="${fieldName}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                restoredCount++;
+                console.log(`Restored field: ${fieldName}`);
+            } else {
+                console.warn(`Field checkbox not found for: ${fieldName}`);
+            }
+        });
+        
+        console.log(`Restored ${restoredCount} out of ${selectedFields.length} field selections`);
+        
+        // Highlight the restored fields for better visual feedback
+        selectedFields.forEach(fieldName => {
+            const fieldOption = document.querySelector(`#edit-dynamic-field-selector-content input[value="${fieldName}"]`)?.closest('.field-option');
+            if (fieldOption) {
+                fieldOption.style.background = '#e3f2fd';
+                fieldOption.style.border = '2px solid #2196f3';
+                // Remove highlight after 2 seconds
+                setTimeout(() => {
+                    fieldOption.style.background = '';
+                    fieldOption.style.border = '';
+                }, 2000);
+            }
+        });
+    }
+    
+    addEditCondition(groupIndex, condition = {}) {
+        const container = document.getElementById(`edit-conditions-${groupIndex}`);
+        const conditionIndex = container.children.length;
+        
+        const conditionDiv = document.createElement('div');
+        conditionDiv.className = 'condition-row';
+        conditionDiv.innerHTML = `
+            <select class="edit-condition-field" required>
+                <option value="">Select field...</option>
+                <option value="name" ${condition.field === 'name' ? 'selected' : ''}>Name</option>
+                <option value="comment" ${condition.field === 'comment' ? 'selected' : ''}>Comment</option>
+                <option value="amount" ${condition.field === 'amount' ? 'selected' : ''}>Amount</option>
+                <option value="currency" ${condition.field === 'currency' ? 'selected' : ''}>Currency</option>
+                <option value="platform" ${condition.field === 'platform' ? 'selected' : ''}>Platform</option>
+            </select>
+            
+            <select class="edit-condition-operator" required>
+                <option value="equals" ${condition.operator === 'equals' ? 'selected' : ''}>equals</option>
+                <option value="not_equals" ${condition.operator === 'not_equals' ? 'selected' : ''}>not equals</option>
+                <option value="greater_than" ${condition.operator === 'greater_than' ? 'selected' : ''}>greater than</option>
+                <option value="greater_than_or_equal" ${condition.operator === 'greater_than_or_equal' ? 'selected' : ''}>greater than or equal</option>
+                <option value="less_than" ${condition.operator === 'less_than' ? 'selected' : ''}>less than</option>
+                <option value="less_than_or_equal" ${condition.operator === 'less_than_or_equal' ? 'selected' : ''}>less than or equal</option>
+                <option value="contains" ${condition.operator === 'contains' ? 'selected' : ''}>contains</option>
+                <option value="not_contains" ${condition.operator === 'not_contains' ? 'selected' : ''}>not contains</option>
+                <option value="starts_with" ${condition.operator === 'starts_with' ? 'selected' : ''}>starts with</option>
+                <option value="ends_with" ${condition.operator === 'ends_with' ? 'selected' : ''}>ends with</option>
+                <option value="regex" ${condition.operator === 'regex' ? 'selected' : ''}>matches regex</option>
+            </select>
+            
+            <input type="text" class="edit-condition-value" placeholder="Value" value="${condition.value || ''}" required>
+            
+            <select class="edit-condition-type">
+                <option value="string" ${condition.type === 'string' ? 'selected' : ''}>String</option>
+                <option value="number" ${condition.type === 'number' ? 'selected' : ''}>Number</option>
+            </select>
+            
+            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 4px 8px; font-size: 12px;">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        container.appendChild(conditionDiv);
+    }
+    
+    updateEditGroupLogicVisibility() {
+        const groupsContainer = document.getElementById('edit-condition-groups');
+        const logicSelector = document.getElementById('edit-group-logic');
+        
+        if (groupsContainer && logicSelector) {
+            const groupCount = groupsContainer.children.length;
+            logicSelector.style.display = groupCount > 1 ? 'block' : 'none';
+        }
+    }
+    
+    async updateRule() {
+        try {
+            const formData = this.collectEditFormData();
+            
+            if (!formData) return; // Validation failed
+            
+            // Add the rule ID for updating
+            formData.id = this.editingRule.id;
+            
+            const response = await fetch(`/api/rules/${this.editingRule.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('Rule updated successfully!', 'success');
+                this.closeEditModal();
+                await this.refreshRules();
+            } else {
+                throw new Error(result.error || 'Failed to update rule');
+            }
+        } catch (error) {
+            console.error('Failed to update rule:', error);
+            this.showNotification('Failed to update rule: ' + error.message, 'error');
+        }
+    }
+    
+    collectEditFormData() {
+        const name = document.getElementById('edit-rule-name').value.trim();
+        const description = document.getElementById('edit-rule-description').value.trim();
+        const endpoint = document.getElementById('edit-action-endpoint').value.trim();
+        const blockDefault = document.getElementById('edit-block-default').checked;
+        
+        if (!name) {
+            this.showNotification('Rule name is required', 'warning');
+            return null;
+        }
+        
+        if (!endpoint) {
+            this.showNotification('OSC endpoint is required', 'warning');
+            return null;
+        }
+        
+        // Extract condition groups (using same logic as create form)
+        const conditionGroups = [];
+        const groupsContainer = document.getElementById('edit-condition-groups-container');
+        const groupCards = groupsContainer.querySelectorAll('.condition-group-card');
+        
+        groupCards.forEach(groupCard => {
+            const extractedGroup = this.extractEditConditionGroup(groupCard);
+            if (extractedGroup) {
+                conditionGroups.push(extractedGroup);
+            }
+        });
+        
+        if (conditionGroups.length === 0) {
+            this.showNotification('At least one condition group with valid conditions is required', 'warning');
+            return null;
+        }
+        
+        // Flatten conditions from all groups
+        const conditions = [];
+        conditionGroups.forEach(group => {
+            conditions.push(...group.conditions);
+        });
+        
+        // Get group logic
+        const conditionLogicRadio = document.querySelector('input[name="edit-group-logic"]:checked');
+        const conditionLogic = conditionLogicRadio ? conditionLogicRadio.value : 'OR';
+        
+        // Collect selected fields from dynamic field selector
+        const fields = [];
+        document.querySelectorAll('#edit-dynamic-field-selector-content input[type="checkbox"]:checked').forEach(checkbox => {
+            fields.push(checkbox.value);
+        });
+        
+        if (fields.length === 0) {
+            this.showNotification('At least one field must be selected for the OSC message', 'warning');
+            return null;
+        }
+        
+        // Build actions
+        const actions = [{
+            type: 'route_to_endpoint',
+            endpoint: endpoint,
+            fields: fields
+        }];
+        
+        return {
+            name,
+            description,
+            conditions,
+            conditionLogic,
+            actions,
+            blockDefault,
+            enabled: true
+        };
+    }
+    
+    extractEditConditionGroup(groupCard) {
+        const groupId = groupCard.dataset.groupId;
+        const sourceInput = groupCard.querySelector(`input[name="edit-source-${groupId}"]:checked`);
+        
+        if (!sourceInput) return null;
+        
+        const source = sourceInput.value;
+        const selectedMessageType = groupCard.querySelector(`#edit-message-type-options-${groupId} .message-type-option.selected`);
+        const messageType = selectedMessageType ? selectedMessageType.textContent.toLowerCase().trim() : null;
+        
+        const conditionsListContainer = document.getElementById(`edit-conditions-list-${groupId}`);
+        const conditionElements = conditionsListContainer.querySelectorAll('.single-condition');
+        const conditions = [];
+        
+        conditionElements.forEach(conditionElement => {
+            const fieldSelect = conditionElement.querySelector('select:first-child');
+            const operatorSelect = conditionElement.querySelector('select:nth-child(2)');
+            const valueInput = conditionElement.querySelector('input');
+            const typeDisplay = conditionElement.querySelector('.condition-type-display');
+            
+            const field = fieldSelect.value;
+            const operator = operatorSelect.value;
+            const value = valueInput.value;
+            const dataType = typeDisplay.textContent;
+            
+            if (field && operator && value) {
+                let processedValue = value;
+                if (dataType === 'number') {
+                    processedValue = parseFloat(value) || 0;
+                } else if (dataType === 'boolean') {
+                    processedValue = value.toLowerCase() === 'true' || value === '1';
+                }
+                
+                conditions.push({
+                    field,
+                    operator,
+                    value: processedValue,
+                    dataType
+                });
+            }
+        });
+        
+        const conditionLogicInput = groupCard.querySelector(`input[name="edit-condition-logic-${groupId}"]:checked`);
+        const conditionLogic = conditionLogicInput ? conditionLogicInput.value : 'AND';
+        
+        return {
+            source,
+            messageType,
+            conditions,
+            conditionLogic
+        };
     }
 
+    groupConditionsByPlatform(conditions) {
+        // For simplicity, just return all conditions in one group for now
+        // In a more advanced implementation, this could group by platform field
+        return [conditions];
+    }
+    
     populateFormWithRule(rule) {
         document.getElementById('rule-name').value = rule.name || '';
         document.getElementById('rule-description').value = rule.description || '';
@@ -1342,6 +2883,7 @@ class RoutingUI {
                 document.getElementById('osc-port').value = data.config.oscPort;
                 document.getElementById('osc-message-format').value = data.config.oscMessageFormat || 'binary';
                 document.getElementById('enable-default-endpoints').checked = data.config.enableDefaultEndpoints !== false;
+                document.getElementById('remove-emojis').checked = data.config.removeEmojis === true;
                 document.getElementById('current-osc-target').textContent = `${data.config.oscHost}:${data.config.oscPort}`;
             }
         } catch (error) {
@@ -1527,6 +3069,53 @@ class RoutingUI {
         } catch (error) {
             console.error('Failed to save default endpoints setting:', error);
             this.showNotification('Failed to save setting: ' + error.message, 'error');
+        }
+    }
+    
+    async saveEmojiSetting() {
+        try {
+            const removeEmojis = document.getElementById('remove-emojis').checked;
+            
+            const response = await fetch('/api/config', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    removeEmojis: removeEmojis
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const status = removeEmojis ? 'enabled' : 'disabled';
+                this.showNotification(`Emoji removal ${status} successfully!`, 'success');
+                
+                // Show status message
+                const statusDiv = document.getElementById('config-status');
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#e6fffa';
+                statusDiv.style.border = '1px solid #38b2ac';
+                statusDiv.style.color = '#38b2ac';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    <strong>Emoji Removal ${removeEmojis ? 'Enabled' : 'Disabled'}</strong><br>
+                    ${removeEmojis 
+                        ? 'All emojis will be removed from comment messages before processing.' 
+                        : 'Emojis will be preserved in comment messages.'}
+                `;
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            } else {
+                throw new Error(result.error || 'Failed to save emoji removal setting');
+            }
+            
+        } catch (error) {
+            console.error('Failed to save emoji removal setting:', error);
+            this.showNotification('Failed to save emoji setting: ' + error.message, 'error');
         }
     }
     
@@ -2196,6 +3785,10 @@ function importConfiguration(fileInput) {
 
 function saveDefaultEndpointsSetting() {
     app.saveDefaultEndpointsSetting();
+}
+
+function saveEmojiSetting() {
+    app.saveEmojiSetting();
 }
 
 function refreshLogs() {

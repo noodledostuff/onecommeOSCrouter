@@ -306,10 +306,12 @@
             background: white;
             border-radius: 10px;
             padding: 30px;
-            max-width: 600px;
-            max-height: 80vh;
+            max-width: 800px;
+            width: 90vw;
+            max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            margin: 20px;
         }
 
         .modal-header {
@@ -598,6 +600,8 @@
             padding: 60px 20px;
             color: #a0aec0;
         }
+        
+        /* Edit modal uses same styles as create form */
         
         /* Enhanced readable content styles */
         .log-readable-content {
@@ -1462,6 +1466,38 @@
                     <hr style="margin: 30px 0;">
                     
                     <div class="form-group">
+                        <h3><i class="fas fa-cog"></i> Message Processing</h3>
+                        <p style="color: #718096; margin-bottom: 20px;">Configure how incoming messages are processed before sending to OSC.</p>
+                        
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0; color: #856404;"><i class="fas fa-smile"></i> Emoji Removal</h4>
+                            <p style="margin-bottom: 10px;">When enabled, all emojis and emoji-like content will be removed from comment messages before processing. This includes:</p>
+                            <ul style="margin-bottom: 10px; padding-left: 20px;">
+                                <li>HTML emoji tags (YouTube custom emojis like <code>&lt;img data-custom-emoji="true"&gt;</code>)</li>
+                                <li>Unicode emojis (😀, 🎉, ❤️, etc.)</li>
+                                <li>Platform-specific emoji formats</li>
+                            </ul>
+                            <p style="margin-bottom: 0; font-size: 13px; color: #6c757d;">Useful for applications that don't handle emojis well or when you want clean text-only messages.</p>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="remove-emojis">
+                                <span class="slider"></span>
+                            </label>
+                            <label for="remove-emojis" style="cursor: pointer; font-weight: bold; color: #495057;">
+                                <i class="fas fa-eraser"></i> Remove Emojis from Comments
+                            </label>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="saveEmojiSetting()">
+                            <i class="fas fa-save"></i> Save Emoji Settings
+                        </button>
+                    </div>
+                    
+                    <hr style="margin: 30px 0;">
+                    
+                    <div class="form-group">
                         <h3><i class="fas fa-toggle-on"></i> Default Endpoints</h3>
                         <p style="color: #718096; margin-bottom: 20px;">Control whether built-in default OSC endpoints are enabled or disabled.</p>
                         
@@ -1590,7 +1626,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Edit Rule</h3>
-                <span class="close" onclick="closeEditModal()">&times;</span>
+                <span class="close" onclick="app.closeEditModal()">&times;</span>
             </div>
             <div id="edit-modal-body">
                 <!-- Edit form will be loaded here -->

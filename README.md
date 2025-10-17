@@ -30,9 +30,10 @@ The OSC Router acts as an intelligent middleware layer that:
 
 ## ✨ Key Features
 
-### 🎛️ Advanced Message Routing
+### 🅰️ Advanced Message Routing
 - **Multi-Condition Logic**: Create complex rules with AND/OR logic chains
 - **Platform-Specific Filtering**: Route based on platform, user status, message content, or monetary values
+- **Emoji Management**: Optional removal of emoji content from chat messages for clean text output
 - **Endpoint Customization**: Send different message types to different OSC addresses
 - **Real-Time Processing**: Zero-latency message transformation and routing
 
@@ -111,7 +112,10 @@ Access the configuration interface at `http://localhost:19101`:
 - System health monitoring
 
 #### 📜 **Rules Tab**
-- Create and manage routing rules
+- Create and manage routing rules with visual rule builder
+- **Edit existing rules** using the dedicated edit modal with pre-populated forms
+- Enable/disable rules with toggle switches
+- Delete rules with confirmation prompts  
 - Test rules with sample messages
 - Import/export rule sets
 - Rule priority management
@@ -124,6 +128,7 @@ Access the configuration interface at `http://localhost:19101`:
 
 #### ⚙️ **Settings Tab**
 - OSC output configuration
+- **Emoji Removal**: Toggle to remove emoji content from chat messages
 - Web interface preferences
 - Advanced connection settings
 - Configuration backup/restore
@@ -354,6 +359,12 @@ Access advanced settings through the web interface:
   - **String**: Sends JSON as plain text string (useful for text-based receivers or debugging)
 - Default endpoints enable/disable toggle
 
+**Message Processing Settings:**
+- **Emoji Removal**: Strip emoji content (both HTML tags and Unicode emojis) from chat messages
+  - Removes `<img>` tags containing emoji representations
+  - Removes Unicode emoji characters and combining sequences
+  - Maintains clean text output for applications that don't support emoji rendering
+
 **Connection Settings:**
 - OSC reconnection intervals
 - Maximum reconnection attempts
@@ -403,7 +414,7 @@ Test both binary and string OSC message formats:
 ```bash
 node tests/test-osc-message-formats.js
 ```
-**Tests**: Configuration system, binary/string message creation, Unicode handling, format comparison
+**Tests**: Configuration system, binary/string message creation, Unicode handling, emoji removal, format comparison
 
 ### Troubleshooting Common Issues
 
