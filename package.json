@@ -1,11 +1,15 @@
 {
   "name": "onecomme-osc-router",
-  "version": "2.1.0",
-  "description": "OneComme OSC Router - Enhanced plugin with conditional routing and web UI for live streaming applications",
+  "version": "2.2.0",
+  "description": "OneComme OSC Router - Enhanced plugin with conditional routing, emoji removal, and comprehensive web UI for live streaming applications",
   "main": "plugin.js",
   "scripts": {
     "start": "node plugin.js",
-    "test": "node test-plugin.js",
+    "test": "node tests/test-config-persistence.js && node tests/test-osc-reliability.js && node tests/test-osc-message-formats.js",
+    "test:config": "node tests/test-config-persistence.js",
+    "test:osc": "node tests/test-osc-reliability.js",
+    "test:formats": "node tests/test-osc-message-formats.js",
+    "monitor": "node tests/osc-monitor.js",
     "dev": "node test-plugin.js"
   },
   "keywords": [
@@ -20,9 +24,11 @@
     "routing",
     "conditional",
     "web-ui",
+    "emoji-removal",
+    "message-processing",
     "わんコメ"
   ],
-  "author": "Virtual Cast, Inc.",
+  "author": "noodledostuff",
   "type": "commonjs",
   "license": "MIT",
   "dependencies": {
