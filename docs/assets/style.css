@@ -246,17 +246,24 @@ p {
 }
 
 /* Screenshot (when real images are added) */
-.screenshot {
+.screenshot,
+img.screenshot {
+  max-width: 100%;
+  height: auto;
+  width: 100%;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   margin: 1.5rem 0;
-  overflow: hidden;
+  display: block;
   box-shadow: var(--shadow);
+  object-fit: contain;
 }
 
-.screenshot img {
-  width: 100%;
-  display: block;
+/* For very large screenshots, limit max height */
+img.screenshot {
+  max-height: 800px;
+  object-fit: contain;
+  background: var(--light-bg);
 }
 
 .screenshot-caption {
