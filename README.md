@@ -1,5 +1,7 @@
 # OneComme OSC Router Plugin
 
+*Read this in other languages: [日本語](README.ja.md) | [繁體中文（香港）](README.zh-HK.md)*
+
 **Transform your OneComme chat messages into powerful OSC data streams for VRChat, OBS, TouchDesigner, and other creative applications**
 
 The OneComme OSC Router is a comprehensive plugin that bridges the gap between OneComme's multi-platform chat capture and OSC-enabled applications. It intelligently processes chat messages from YouTube, Bilibili, and Niconico, transforming them into structured OSC messages with sophisticated routing capabilities.
@@ -585,6 +587,64 @@ onecommeOSCrouter/
 - **Discussions**: General questions and community sharing
 - **Wiki**: Additional documentation and tutorials
 - **Examples Repository**: Community-contributed rule templates
+
+---
+
+## ❓ Frequently Asked Questions (Q&A)
+
+### Q1: Why implement this as a OneComme plugin instead of a standalone application?
+
+**A**: Why reinvent the wheel when OneComme has already solved the complex challenges of multi-platform authentication, message fetching, rate limiting, and API handling for YouTube, Bilibili, and Niconico? By building as a plugin, we can focus on what we do best—intelligent message routing and OSC integration—while leveraging OneComme's robust, battle-tested infrastructure for chat capture. This approach means:
+- **No duplicate auth flows**: OneComme handles all platform logins and API keys
+- **Automatic updates**: When platforms change their APIs, OneComme updates once for all plugins
+- **Lower maintenance**: We don't need to maintain separate API clients for each platform
+- **Better reliability**: OneComme's proven message capture system is more stable than starting from scratch
+- **Unified configuration**: Users already have OneComme set up for streaming—just add the plugin
+
+### Q2: Can I use this plugin without OneComme?
+
+**A**: No, this plugin requires OneComme to be installed and running. OneComme provides the message capture infrastructure that this plugin relies on. Think of OneComme as the data source and this plugin as the specialized processor that transforms that data into OSC messages.
+
+### Q3: What's the difference between Binary and String OSC message formats?
+
+**A**: 
+- **Binary format** (default): Sends JSON data as a binary blob. This is the standard OSC data format that most applications expect (VRChat, TouchOSC, TouchDesigner, etc.). Use this unless you have a specific reason not to.
+- **String format**: Sends JSON as a plain UTF-8 text string. Some custom OSC receivers or text-based applications may require this format. It's also useful for debugging since the data is human-readable in network monitors.
+
+If your OSC receiver isn't parsing messages correctly, try switching formats in the Settings tab.
+
+### Q4: Will this work with VRChat?
+
+**A**: Yes! The default OSC port (19100) is VRChat's standard OSC input port. The plugin sends structured JSON messages that can be received by VRChat's OSC system. You can create custom routing rules to send different message types to different VRChat avatar parameters or world triggers. Many VRChat creators use this plugin to display chat messages, Super Chat alerts, and viewer interactions in-world.
+
+### Q5: Does the plugin slow down or affect OneComme's performance?
+
+**A**: No. The plugin runs asynchronously and processes messages in a separate thread from OneComme's main capture system. OSC message sending is non-blocking, so even if the target application is slow to respond, it won't impact OneComme's ability to capture chat messages. The plugin has minimal memory footprint and uses efficient circular buffers for message logging.
+
+### Q6: Can I route messages to multiple applications at once?
+
+**A**: Currently, the plugin sends to a single OSC host/port configured in settings. However, you can:
+- Use OSC routing software (like OSCRouter or Chataigne) to redistribute messages to multiple destinations
+- Run multiple instances of the plugin on different ports (requires modifying the code)
+- Create rules with different endpoints—your receiving application can listen to multiple OSC addresses
+
+### Q7: What happens to messages when my target application isn't running?
+
+**A**: Messages are sent via UDP, which is a "fire and forget" protocol. If the target application isn't running or listening:
+- The plugin will continue to send messages (they'll just be dropped by the network stack)
+- No errors will be shown in the plugin (this is normal OSC behavior)
+- When your target application starts and begins listening, it will immediately receive new messages
+- You can use the built-in OSC monitor (`npm run monitor`) to verify messages are being sent correctly
+
+### Q8: How do I create rules for specific users or message content?
+
+**A**: Use the visual rule builder in the web interface (Rules tab) or manually edit `routing-rules.json`. Rules support:
+- **Field matching**: username, message content, donation amounts, user levels, VIP status
+- **Operators**: equals, contains, greater_than, less_than, regex patterns
+- **Logic combinations**: AND/OR logic for complex conditions
+- **Platform filtering**: YouTube-only, Bilibili-only, or cross-platform rules
+
+See the "Creating Custom Routing Rules" section for detailed examples.
 
 ---
 

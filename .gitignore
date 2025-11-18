@@ -99,3 +99,9 @@ temp/
 
 # Configuration files (user-specific)
 config.json
+config.backup.json
+config.before-reset.json
+routing-rules.json
+
+# Test and sample files
+test-sample-rule.json

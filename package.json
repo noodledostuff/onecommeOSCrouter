@@ -1,6 +1,6 @@
 {
   "name": "onecomme-osc-router",
-  "version": "2.2.0",
+  "version": "0.8.0",
   "description": "OneComme OSC Router - Enhanced plugin with conditional routing, emoji removal, and comprehensive web UI for live streaming applications",
   "main": "plugin.js",
   "scripts": {
