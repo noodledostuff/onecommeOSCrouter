@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="OneComme OSC Router 插件完整逐步指南 - VRChat、OBS、TouchDesigner 整合的設定、配置和使用說明">
+    <meta name="keywords" content="OneComme, OSC, Router, Plugin, VRChat, OBS, TouchDesigner, Guide, Tutorial, 繁體中文">
+    <title>OneComme OSC Router - 使用指南</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>🎯 OneComme OSC Router - 使用指南</h1>
+            <p>設定、配置和使用的完整逐步指南</p>
+            <div class="header-links">
+                <a href="https://github.com/noodledostuff/onecommeOSCrouter" target="_blank">📦 GitHub 儲存庫</a>
+                <a href="https://github.com/noodledostuff/onecommeOSCrouter/releases" target="_blank">⬇️ 下載最新版本</a>
+                <a href="https://github.com/noodledostuff/onecommeOSCrouter/blob/main/README.md" target="_blank">📖 README</a>
+                <a href="index.html">🌐 English</a>
+                <a href="index.ja.html">🌐 日本語</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="nav-content">
+            <ul>
+                <li><a href="#overview">概述</a></li>
+                <li><a href="#installation">安裝</a></li>
+                <li><a href="#first-launch">首次啟動</a></li>
+                <li><a href="#web-interface">網頁介面</a></li>
+                <li><a href="#creating-rules">建立規則</a></li>
+                <li><a href="#vrchat-setup">VRChat 設定</a></li>
+                <li><a href="#troubleshooting">疑難排解</a></li>
+                <li><a href="#advanced">進階使用</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <!-- 概述部分 -->
+        <section id="overview">
+            <h2>📋 概述</h2>
+            <p>OneComme OSC Router 是一個強大的插件,可將 YouTube、Bilibili 和 Niconico 的聊天訊息轉換為 OSC（Open Sound Control）資料串流。本指南將引導您完成設定和使用的每個步驟。</p>
+            
+            <div class="info-box note">
+                <strong>📌 開始之前</strong>
+                <p>請確保您已準備:</p>
+                <ul>
+                    <li>已安裝 <strong>OneComme</strong> 並配置好串流平台帳號</li>
+                    <li>支援 <strong>OSC 的應用程式</strong>(VRChat、OBS、TouchDesigner 等)</li>
+                    <li>對 OneComme 介面有基本了解</li>
+                </ul>
+            </div>
+
+            <h3>您將學到</h3>
+            <ul>
+                <li>如何安裝和配置插件</li>
+                <li>導覽基於網頁的控制面板</li>
+                <li>建立自訂訊息路由規則</li>
+                <li>與 VRChat 和其他應用程式整合</li>
+                <li>常見問題的疑難排解</li>
+            </ul>
+        </section>
+
+        <!-- 安裝部分 -->
+        <section id="installation">
+            <h2>📦 安裝</h2>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">下載插件</div>
+                </div>
+                <div class="step-content">
+                    <p>訪問 <a href="https://github.com/noodledostuff/onecommeOSCrouter/releases" target="_blank">GitHub 發布頁面</a>並下載最新版本(v0.8.0 或更新版本)。</p>
+                    
+                    <img src="images/releases_page.png" alt="顯示下載按鈕的 GitHub 發布頁面" class="screenshot">
+
+                    <div class="info-box note">
+                        <strong>💡 提示:</strong>
+                        下載 ZIP 檔案(不是原始碼)。發布版本包含所有相依套件 — 無需執行 npm install！
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">解壓縮到 OneComme 插件目錄</div>
+                </div>
+                <div class="step-content">
+                    <p>將下載的 ZIP 檔案解壓縮到 OneComme 的插件目錄。資料夾結構應該如下:</p>
+                    
+                    <pre><code>OneComme/
+└── Plugins/
+    └── onecommeOSCrouter/
+        ├── plugin.js
+        ├── package.json
+        ├── web-ui/
+        ├── impl/
+        ├── tests/
+        └── node_modules/</code></pre>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <p>螢幕截圖:檔案總管顯示 OneComme 插件目錄中的插件資料夾</p>
+                        <p class="caption">新增螢幕截圖: plugin_folder_structure.png</p>
+                    </div>
+
+                    <div class="info-box warning">
+                        <strong>⚠️ 重要:</strong>
+                        資料夾名稱<strong>必須</strong>為 <code>onecommeOSCrouter</code>(區分大小寫)。使用不同名稱，OneComme 將無法偵測到它。
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">重新啟動 OneComme</div>
+                </div>
+                <div class="step-content">
+                    <p>完全關閉並重新啟動 OneComme 以偵測新插件。簡單的重新整理無效 — 需要完全重新啟動。</p>
+                    
+                    <ol>
+                        <li>關閉 OneComme(檔案 → 結束 或 Alt+F4)</li>
+                        <li>重新啟動 OneComme</li>
+                        <li>檢查主控台中的插件載入訊息</li>
+                    </ol>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>螢幕截圖: OneComme 主控台顯示插件成功載入訊息</p>
+                        <p class="caption">需要手動擷取: console_plugin_loaded.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">啟用插件</div>
+                </div>
+                <div class="step-content">
+                    <p>進入 OneComme 的插件設定並啟用「OneComme OSC Router」:</p>
+                    
+                    <ol>
+                        <li>開啟 OneComme 設定</li>
+                        <li>前往<strong>插件</strong>標籤</li>
+                        <li>在清單中找到<strong>OneComme OSC Router</strong></li>
+                        <li>勾選啟用核取方塊</li>
+                        <li>點選套用/儲存</li>
+                    </ol>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <p>螢幕截圖: 已啟用 OSC Router 的 OneComme 插件設定</p>
+                        <p class="caption">新增螢幕截圖: enable_plugin.png</p>
+                    </div>
+
+                    <div class="info-box success">
+                        <strong>✅ 成功！</strong>
+                        如果一切配置正確，您應該會在 OneComme 主控台中看到插件已啟動的確認訊息。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 首次啟動部分 -->
+        <section id="first-launch">
+            <h2>🚀 首次啟動</h2>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">存取網頁介面</div>
+                </div>
+                <div class="step-content">
+                    <p>插件啟用後，開啟網頁瀏覽器並前往:</p>
+                    
+                    <pre><code>http://localhost:19101</code></pre>
+
+                    <p>您應該會看到 OneComme OSC Router 控制面板。</p>
+
+                    <img src="images/web_interface_overview.png" alt="首次載入時的網頁介面概述標籤" class="screenshot">
+
+                    <div class="info-box note">
+                        <strong>💡 加入書籤！</strong>
+                        將 <code>http://localhost:19101</code> 儲存為書籤以便快速存取。只要 OneComme 執行且插件已啟用，介面就可以隨時存取。
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">驗證預設配置</div>
+                </div>
+                <div class="step-content">
+                    <p>插件配有針對 VRChat 最佳化的合理預設值:</p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>設定</th>
+                                <th>預設值</th>
+                                <th>說明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>OSC 主機</td>
+                                <td><code>127.0.0.1</code></td>
+                                <td>本機(同一台電腦)</td>
+                            </tr>
+                            <tr>
+                                <td>OSC 連接埠</td>
+                                <td><code>19100</code></td>
+                                <td>標準 VRChat OSC 連接埠</td>
+                            </tr>
+                            <tr>
+                                <td>網頁 UI 連接埠</td>
+                                <td><code>19101</code></td>
+                                <td>控制面板存取</td>
+                            </tr>
+                            <tr>
+                                <td>訊息格式</td>
+                                <td>二進位</td>
+                                <td>標準 OSC 格式</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p>點選<strong>設定</strong>標籤以檢視並根據需要修改這些設定。</p>
+
+                    <img src="images/settings_default.png" alt="顯示預設配置的設定標籤" class="screenshot">
+                </div>
+            </div>
+        </section>
+
+        <!-- 網頁介面部分 -->
+        <section id="web-interface">
+            <h2>🖥️ 網頁介面導覽</h2>
+            <p>網頁介面有四個主要標籤。讓我們逐一探索:</p>
+
+            <h3>📊 概述標籤</h3>
+            <p>即時監控的儀表板:</p>
+            <ul>
+                <li><strong>訊息統計:</strong>已處理的總訊息數、各平台訊息數</li>
+                <li><strong>連線狀態:</strong>OneComme 和 OSC 連線指示器</li>
+                <li><strong>系統健康:</strong>插件執行時間和效能指標</li>
+                <li><strong>快速操作:</strong>快速存取常用設定</li>
+            </ul>
+
+            <div class="screenshot-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <p>螢幕截圖:顯示統計資料和連線狀態的概述標籤</p>
+                <p class="caption">新增螢幕截圖: overview_tab_detailed.png</p>
+            </div>
+
+            <h3>📜 規則標籤</h3>
+            <p>建立和管理訊息路由規則:</p>
+            <ul>
+                <li><strong>規則清單:</strong>所有自訂路由規則</li>
+                <li><strong>啟用/停用切換:</strong>快速規則啟用</li>
+                <li><strong>編輯按鈕:</strong>修改現有規則</li>
+                <li><strong>刪除按鈕:</strong>移除不需要的規則</li>
+                <li><strong>新增規則:</strong>建立自訂路由邏輯</li>
+                <li><strong>測試規則:</strong>使用範例訊息驗證規則</li>
+            </ul>
+
+            <img src="images/rules_tab.png" alt="顯示規則清單和管理選項的規則標籤" class="screenshot">
+
+            <h3>📋 記錄標籤</h3>
+            <p>即時監控訊息流:</p>
+            <ul>
+                <li><strong>即時動態:</strong>傳入和傳出訊息</li>
+                <li><strong>篩選選項:</strong>依平台、訊息類型篩選</li>
+                <li><strong>搜尋:</strong>尋找特定訊息或使用者</li>
+                <li><strong>匯出:</strong>下載記錄以進行除錯</li>
+                <li><strong>清除:</strong>重設記錄歷程</li>
+            </ul>
+
+            <img src="images/logs_tab.png" alt="包含訊息歷程和篩選的記錄標籤" class="screenshot">
+
+            <h3>⚙️ 設定標籤</h3>
+            <p>配置插件行為:</p>
+            <ul>
+                <li><strong>OSC 輸出:</strong>主機、連接埠、訊息格式</li>
+                <li><strong>移除 Emoji:</strong>從訊息中去除 emoji</li>
+                <li><strong>預設端點:</strong>啟用/停用特定平台端點</li>
+                <li><strong>進階:</strong>連線設定、效能調整</li>
+                <li><strong>備份/還原:</strong>匯出和匯入配置</li>
+            </ul>
+
+            <img src="images/settings_tab_full.png" alt="包含所有配置選項的設定標籤" class="screenshot">
+        </section>
+
+        <!-- 建立規則部分 -->
+        <section id="creating-rules">
+            <h2>🎨 建立自訂路由規則</h2>
+            <p>路由規則讓您能將特定類型的訊息發送到不同的 OSC 端點。讓我們逐步建立一個規則。</p>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">7</div>
+                    <div class="step-title">開啟規則建立器</div>
+                </div>
+                <div class="step-content">
+                    <ol>
+                        <li>點選<strong>規則</strong>標籤</li>
+                        <li>點選<strong>「新增規則」</strong>按鈕</li>
+                        <li>規則建立器模態視窗將出現</li>
+                    </ol>
+
+                    <img src="images/rule_builder_empty.png" alt="規則建立器模態視窗(空白表單)" class="screenshot">
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">8</div>
+                    <div class="step-title">配置基本規則資訊</div>
+                </div>
+                <div class="step-content">
+                    <p>填寫基本資訊:</p>
+                    
+                    <ul>
+                        <li><strong>規則名稱:</strong>描述性名稱(例如:「高額超級留言」)</li>
+                        <li><strong>說明:</strong>此規則的作用(選填但建議填寫)</li>
+                        <li><strong>端點:</strong>訊息將被發送到的 OSC 位址(例如: <code>/chat/superchats</code>)</li>
+                        <li><strong>已啟用:</strong>勾選以立即啟用</li>
+                    </ul>
+
+                    <img src="images/rule_builder_basic_info.png" alt="已填寫基本資訊的規則建立器" class="screenshot">
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">9</div>
+                    <div class="step-title">新增條件</div>
+                </div>
+                <div class="step-content">
+                    <p>條件決定哪些訊息符合此規則。範例:路由超過 $20 的超級留言</p>
+                    
+                    <ol>
+                        <li>點選<strong>「新增條件群組」</strong></li>
+                        <li>選擇<strong>平台:</strong> YouTube</li>
+                        <li>選擇<strong>訊息類型:</strong> superchat</li>
+                        <li>點選<strong>「新增條件」</strong></li>
+                        <li>設定:
+                            <ul>
+                                <li>欄位: <code>amount</code></li>
+                                <li>運算子: <code>greater_than</code></li>
+                                <li>值: <code>20</code></li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <img src="images/rule_builder_conditions.png" alt="已配置條件的規則建立器" class="screenshot">
+
+                    <div class="info-box note">
+                        <strong>💡 可用運算子:</strong>
+                        <ul>
+                            <li><code>equals</code> - 完全符合</li>
+                            <li><code>not_equals</code> - 不相等</li>
+                            <li><code>contains</code> - 字串包含</li>
+                            <li><code>not_contains</code> - 字串不包含</li>
+                            <li><code>greater_than</code> / <code>less_than</code> - 數值比較</li>
+                            <li><code>regex</code> - 正規表示式符合</li>
+                            <li><code>exists</code> / <code>not_exists</code> - 欄位存在</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">10</div>
+                    <div class="step-title">配置欄位對應(選填)</div>
+                </div>
+                <div class="step-content">
+                    <p>欄位對應讓您自訂 OSC 訊息中包含的資料欄位。如果未指定，將發送所有欄位。</p>
+                    
+                    <p>對應範例:</p>
+                    <ul>
+                        <li><code>username</code> → <code>name</code></li>
+                        <li><code>message_text</code> → <code>comment</code></li>
+                        <li><code>donation_amount</code> → <code>amount</code></li>
+                        <li><code>currency_code</code> → <code>currency</code></li>
+                    </ul>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <p>螢幕截圖:包含欄位對應的規則建立器</p>
+                        <p class="caption">新增螢幕截圖: rule_builder_mappings.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">11</div>
+                    <div class="step-title">測試規則</div>
+                </div>
+                <div class="step-content">
+                    <p>儲存前，使用範例資料測試規則:</p>
+                    
+                    <ol>
+                        <li>點選<strong>「測試規則」</strong>按鈕</li>
+                        <li>測試面板將顯示範例訊息</li>
+                        <li>查看哪些訊息符合您的規則</li>
+                        <li>根據需要調整條件</li>
+                    </ol>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>螢幕截圖:顯示符合訊息的規則測試結果</p>
+                        <p class="caption">新增螢幕截圖: rule_test_results.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">12</div>
+                    <div class="step-title">儲存並啟用</div>
+                </div>
+                <div class="step-content">
+                    <p>對規則滿意後:</p>
+                    
+                    <ol>
+                        <li>點選<strong>「儲存規則」</strong></li>
+                        <li>規則會出現在規則清單中</li>
+                        <li>隨時切換開關以啟用/停用</li>
+                        <li>規則會自動儲存到磁碟</li>
+                    </ol>
+
+                    <div class="info-box success">
+                        <strong>✅ 規則已啟用！</strong>
+                        您的規則現正處理訊息。查看記錄標籤以查看其運作情況。
+                    </div>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p>螢幕截圖:顯示新建立規則的規則清單</p>
+                        <p class="caption">新增螢幕截圖: rule_saved_in_list.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3>規則範例</h3>
+            <p>以下是一些實用的規則範例助您開始:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>規則名稱</th>
+                        <th>目的</th>
+                        <th>條件</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>僅限 VIP 會員</td>
+                        <td>路由來自頻道會員的訊息</td>
+                        <td><code>is_member equals true</code></td>
+                    </tr>
+                    <tr>
+                        <td>Bilibili 高額禮物</td>
+                        <td>突顯高價值的 Bilibili 禮物</td>
+                        <td><code>coins greater_than 100</code></td>
+                    </tr>
+                    <tr>
+                        <td>關鍵字篩選</td>
+                        <td>捕捉特定關鍵字</td>
+                        <td><code>comment contains \"VRChat\"</code></td>
+                    </tr>
+                    <tr>
+                        <td>封鎖垃圾訊息</td>
+                        <td>過濾垃圾訊息</td>
+                        <td><code>comment regex \"\\b(spam|bot)\\b\"</code>(NOT 邏輯)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- VRChat 設定部分 -->
+        <section id="vrchat-setup">
+            <h2>🎮 VRChat 整合</h2>
+            <p>插件已針對 VRChat 進行開箱即用的最佳化。以下是在世界中顯示聊天訊息的方法:</p>
+
+            <div class="info-box note">
+                <strong>📌 先決條件:</strong>
+                <ul>
+                    <li>已安裝並執行 VRChat</li>
+                    <li>對 VRChat 的 OSC 系統有基本了解</li>
+                    <li>可以接收 OSC 訊息的虛擬角色或世界</li>
+                </ul>
+            </div>
+
+            <h3>步驟 1:啟用 VRChat OSC</h3>
+            <p>在 VRChat 的動作選單中:</p>
+            <ol>
+                <li>開啟<strong>Options</strong></li>
+                <li>前往<strong>OSC</strong>標籤</li>
+                <li>啟用<strong>OSC</strong></li>
+                <li>如有問題，點選<strong>Reset Config</strong></li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                </svg>
+                <p>螢幕截圖: VRChat OSC 設定選單</p>
+                <p class="caption">新增螢幕截圖: vrchat_osc_settings.png</p>
+            </div>
+
+            <h3>步驟 2:驗證連線</h3>
+            <p>插件預設將訊息發送到連接埠 19100(VRChat 的標準連接埠)。驗證方法:</p>
+            
+            <ol>
+                <li>使用 OneComme 開始串流</li>
+                <li>請某人發送聊天訊息</li>
+                <li>檢查插件的<strong>記錄標籤</strong>查看傳出訊息</li>
+                <li>在記錄中尋找 <code>/onecomme/youtube/comment</code>(或類似)</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                <p>螢幕截圖:顯示發送到 VRChat 的訊息的記錄</p>
+                <p class="caption">新增螢幕截圖: logs_vrchat_messages.png</p>
+            </div>
+
+            <h3>步驟 3:設定虛擬角色/世界參數</h3>
+            <p>要在 VRChat 中顯示訊息，您需要監聽 OSC 位址的虛擬角色參數或世界腳本。</p>
+
+            <p><strong>預設 OSC 端點:</strong></p>
+            <ul>
+                <li><code>/onecomme/youtube/comment</code> - YouTube 留言</li>
+                <li><code>/onecomme/youtube/superchat</code> - 超級留言</li>
+                <li><code>/onecomme/bilibili/comment</code> - Bilibili 留言</li>
+                <li><code>/onecomme/bilibili/gift</code> - Bilibili 禮物</li>
+                <li><code>/onecomme/niconico/comment</code> - Niconico 留言</li>
+            </ul>
+
+            <div class="info-box note">
+                <strong>💡 虛擬角色創作者:</strong>
+                使用 Udon 或虛擬角色參數來監聽這些 OSC 位址。訊息資料在 OSC 載荷中以 JSON 格式發送。
+            </div>
+
+            <h3>VRChat 連線疑難排解</h3>
+            <p>如果訊息未在 VRChat 中顯示:</p>
+            <ul>
+                <li>驗證設定中已啟用 VRChat OSC</li>
+                <li>檢查防火牆沒有封鎖 UDP 連接埠 19100</li>
+                <li>確認 OneComme 正在接收聊天訊息</li>
+                <li>查看插件記錄以驗證訊息正在發送</li>
+                <li>嘗試在設定中切換<strong>二進位 vs 字串</strong>格式</li>
+                <li>進行 OSC 變更後重新啟動 VRChat</li>
+            </ul>
+        </section>
+
+        <!-- 疑難排解部分 -->
+        <section id="troubleshooting">
+            <h2>🔧 疑難排解</h2>
+
+            <h3>插件無法載入</h3>
+            <div class="info-box warning">
+                <strong>症狀:</strong>插件未出現在 OneComme 的插件清單中
+                <p><strong>解決方案:</strong></p>
+                <ul>
+                    <li>驗證資料夾名稱正確為 <code>onecommeOSCrouter</code>(區分大小寫)</li>
+                    <li>檢查插件資料夾根目錄中存在 <code>plugin.js</code></li>
+                    <li>確保存在 <code>node_modules</code> 資料夾(應包含在發布版本中)</li>
+                    <li>嘗試完全重新啟動 OneComme(不只是重新整理)</li>
+                    <li>檢查 OneComme 主控台中的錯誤訊息</li>
+                </ul>
+            </div>
+
+            <h3>網頁介面無法載入</h3>
+            <div class="info-box warning">
+                <strong>症狀:</strong><code>http://localhost:19101</code> 顯示「無法連線到此網頁」
+                <p><strong>解決方案:</strong></p>
+                <ul>
+                    <li>驗證 OneComme 設定中已啟用插件</li>
+                    <li>檢查是否有其他應用程式正在使用連接埠 19101</li>
+                    <li>嘗試從不同的瀏覽器存取</li>
+                    <li>在 OneComme 主控台中尋找網頁伺服器啟動訊息</li>
+                    <li>檢查 Windows 防火牆設定中被封鎖的連接埠</li>
+                </ul>
+            </div>
+
+            <h3>訊息未到達目標應用程式</h3>
+            <div class="info-box warning">
+                <strong>症狀:</strong>記錄顯示已發送訊息，但目標應用程式未接收
+                <p><strong>解決方案:</strong></p>
+                <ul>
+                    <li>驗證目標應用程式正在正確的連接埠上監聽</li>
+                    <li>確認設定中的 OSC 主機/連接埠符合目標應用程式</li>
+                    <li>嘗試在二進位和字串訊息格式之間切換</li>
+                    <li>檢查防火牆沒有封鎖 UDP 流量</li>
+                    <li>使用 <code>npm run monitor</code> 驗證正在發送 OSC 訊息</li>
+                    <li>變更 OSC 設定後重新啟動目標應用程式</li>
+                </ul>
+            </div>
+
+            <h3>規則未觸發</h3>
+            <div class="info-box warning">
+                <strong>症狀:</strong>已建立規則但訊息未被路由
+                <p><strong>解決方案:</strong></p>
+                <ul>
+                    <li>驗證規則已啟用(切換開關為開啟狀態)</li>
+                    <li>使用規則測試功能驗證條件</li>
+                    <li>檢查條件邏輯(AND vs OR)</li>
+                    <li>驗證欄位名稱符合傳入訊息結構</li>
+                    <li>簡化條件以進行測試(移除除一個條件外的所有條件)</li>
+                    <li>檢查記錄標籤以查看哪些規則正在符合</li>
+                </ul>
+            </div>
+
+            <h3>獲取協助</h3>
+            <p>如果您仍遇到問題:</p>
+            <ul>
+                <li>查看 <a href="https://github.com/noodledostuff/onecommeOSCrouter/issues" target="_blank">GitHub Issues</a> 頁面尋找類似問題</li>
+                <li>查看 README 中的 <a href="https://github.com/noodledostuff/onecommeOSCrouter/blob/main/README.md#-frequently-asked-questions-qa" target="_blank">問答區</a></li>
+                <li>執行測試套件:<code>npm test</code>(從插件目錄)</li>
+                <li>開啟新 issue 並包含:
+                    <ul>
+                        <li>OneComme 版本</li>
+                        <li>插件版本</li>
+                        <li>作業系統</li>
+                        <li>主控台錯誤訊息</li>
+                        <li>重現步驟</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+
+        <!-- 進階使用部分 -->
+        <section id="advanced">
+            <h2>🚀 進階使用</h2>
+
+            <h3>測試 OSC 訊息</h3>
+            <p>插件在 <code>tests/</code> 目錄中包含測試工具:</p>
+
+            <pre><code># 執行所有測試
+npm test
+
+# 測試配置持久性
+npm run test:config
+
+# 測試 OSC 可靠性
+npm run test:osc
+
+# 測試訊息格式
+npm run test:formats
+
+# 即時 OSC 監控器
+npm run monitor</code></pre>
+
+            <h3>配置檔案</h3>
+            <p>插件設定儲存在本機:</p>
+            <ul>
+                <li><code>config.json</code> - 主要配置(自動建立)</li>
+                <li><code>routing-rules.json</code> - 您的自訂規則</li>
+                <li><code>config.backup.json</code> - 變更前的自動備份</li>
+            </ul>
+
+            <div class="info-box note">
+                <strong>💡 專業提示:</strong>
+                您可以直接編輯 <code>routing-rules.json</code> 以批次建立規則，然後在網頁介面中重新載入。
+            </div>
+
+            <h3>OSC 訊息格式</h3>
+            <p>訊息以以下結構的 JSON 發送:</p>
+            
+            <pre><code>{
+  "timestamp": "2024-09-20T08:30:01.123Z",
+  "service": "youtube",
+  "type": "superchat",
+  "user": {
+    "id": "UC1234567890",
+    "name": "StreamerFan123",
+    "display_name": "StreamerFan123"
+  },
+  "message": {
+    "content": "很棒的直播！",
+    "id": "msg_12345"
+  },
+  "platform_data": {
+    "amount": "5.00",
+    "currency": "USD",
+    "is_member": true
+  },
+  "processing": {
+    "rule_matched": "High Value Donations",
+    "endpoint": "/alerts/bigdonation"
+  }
+}</code></pre>
+
+            <h3>REST API</h3>
+            <p>插件在 <code>http://localhost:19101/api/*</code> 公開完整的 REST API:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>端點</th>
+                        <th>方法</th>
+                        <th>說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/api/rules</code></td>
+                        <td>GET</td>
+                        <td>列出所有規則</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/rules</code></td>
+                        <td>POST</td>
+                        <td>建立新規則</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/rules/:id</code></td>
+                        <td>PUT</td>
+                        <td>更新規則</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/rules/:id</code></td>
+                        <td>DELETE</td>
+                        <td>刪除規則</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/config/full</code></td>
+                        <td>GET</td>
+                        <td>取得配置</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/logs</code></td>
+                        <td>GET</td>
+                        <td>取得訊息記錄</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/status</code></td>
+                        <td>GET</td>
+                        <td>系統狀態</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>效能提示</h3>
+            <ul>
+                <li>將啟用的規則限制為您需要的規則</li>
+                <li>使用特定條件來減少處理</li>
+                <li>如不需要，停用 emoji 移除(輕微效能提升)</li>
+                <li>保持合理的記錄保留(預設:100 則訊息)</li>
+                <li>透過概述標籤監控記憶體使用情況</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p><strong>OneComme OSC Router v0.8.0</strong></p>
+        <p>創作者:<a href="https://github.com/noodledostuff" target="_blank">noodledostuff</a> | MIT 授權</p>
+        <p><a href="https://github.com/noodledostuff/onecommeOSCrouter" target="_blank">GitHub</a> | 
+           <a href="https://github.com/noodledostuff/onecommeOSCrouter/issues" target="_blank">回報問題</a> | 
+           <a href="https://github.com/noodledostuff/onecommeOSCrouter/blob/main/README.md" target="_blank">文件</a></p>
+    </footer>
+</body>
+</html>

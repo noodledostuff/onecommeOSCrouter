@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="OneComme OSC Routerプラグインの完全ステップバイステップガイド - VRChat、OBS、TouchDesignerとの連携のためのセットアップ、設定、使用方法">
+    <meta name="keywords" content="OneComme, OSC, Router, Plugin, VRChat, OBS, TouchDesigner, Guide, Tutorial, 日本語">
+    <title>OneComme OSC Router - ユーザーガイド</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>🎯 OneComme OSC Router - ユーザーガイド</h1>
+            <p>セットアップ、設定、使用方法の完全ステップバイステップガイド</p>
+            <div class="header-links">
+                <a href="https://github.com/noodledostuff/onecommeOSCrouter" target="_blank">📦 GitHubリポジトリ</a>
+                <a href="https://github.com/noodledostuff/onecommeOSCrouter/releases" target="_blank">⬇️ 最新版をダウンロード</a>
+                <a href="https://github.com/noodledostuff/onecommeOSCrouter/blob/main/README.md" target="_blank">📖 README</a>
+                <a href="index.html">🌐 English</a>
+                <a href="index.zh-HK.html">🌐 繁體中文</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="nav-content">
+            <ul>
+                <li><a href="#overview">概要</a></li>
+                <li><a href="#installation">インストール</a></li>
+                <li><a href="#first-launch">初回起動</a></li>
+                <li><a href="#web-interface">Webインターフェース</a></li>
+                <li><a href="#creating-rules">ルールの作成</a></li>
+                <li><a href="#vrchat-setup">VRChatセットアップ</a></li>
+                <li><a href="#troubleshooting">トラブルシューティング</a></li>
+                <li><a href="#advanced">高度な使用法</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <!-- 概要セクション -->
+        <section id="overview">
+            <h2>📋 概要</h2>
+            <p>OneComme OSC Routerは、YouTube、Bilibili、ニコニコからのチャットメッセージをOSC（Open Sound Control）データストリームに変換する強力なプラグインです。このガイドでは、セットアップと使用方法のすべてのステップを説明します。</p>
+            
+            <div class="info-box note">
+                <strong>📌 始める前に</strong>
+                <p>以下のものが必要です：</p>
+                <ul>
+                    <li><strong>OneComme</strong>がインストールされ、配信プラットフォームのアカウントで設定されていること</li>
+                    <li><strong>OSC対応アプリケーション</strong>（VRChat、OBS、TouchDesignerなど）</li>
+                    <li>OneCommeのインターフェースに関する基本的な知識</li>
+                </ul>
+            </div>
+
+            <h3>このガイドで学べること</h3>
+            <ul>
+                <li>プラグインのインストールと設定方法</li>
+                <li>Webベースのコントロールパネルの操作</li>
+                <li>カスタムメッセージルーティングルールの作成</li>
+                <li>VRChatやその他のアプリケーションとの統合</li>
+                <li>一般的な問題のトラブルシューティング</li>
+            </ul>
+        </section>
+
+        <!-- インストールセクション -->
+        <section id="installation">
+            <h2>📦 インストール</h2>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">プラグインをダウンロード</div>
+                </div>
+                <div class="step-content">
+                    <p><a href="https://github.com/noodledostuff/onecommeOSCrouter/releases" target="_blank">GitHubリリースページ</a>にアクセスし、最新版（v0.8.0以降）をダウンロードしてください。</p>
+                    
+                    <img src="images/releases_page.png" alt="ダウンロードボタンが表示されたGitHubリリースページ" class="screenshot">
+
+                    <div class="info-box note">
+                        <strong>💡 ヒント：</strong>
+                        ZIPファイルをダウンロードしてください（ソースコードではありません）。リリースにはすべての依存関係が含まれているため、npm installは不要です！
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">OneCommeプラグインディレクトリに展開</div>
+                </div>
+                <div class="step-content">
+                    <p>ダウンロードしたZIPファイルをOneCommeのプラグインディレクトリに展開します。フォルダ構造は次のようになります：</p>
+                    
+                    <pre><code>OneComme/
+└── Plugins/
+    └── onecommeOSCrouter/
+        ├── plugin.js
+        ├── package.json
+        ├── web-ui/
+        ├── impl/
+        ├── tests/
+        └── node_modules/</code></pre>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <p>スクリーンショット：OneCommeプラグインディレクトリにあるプラグインフォルダを示すエクスプローラー</p>
+                        <p class="caption">スクリーンショット追加：plugin_folder_structure.png</p>
+                    </div>
+
+                    <div class="info-box warning">
+                        <strong>⚠️ 重要：</strong>
+                        フォルダ名は<strong>必ず</strong><code>onecommeOSCrouter</code>（大文字小文字を区別）にしてください。異なる名前では、OneCommeが検出できません。
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">OneCommeを再起動</div>
+                </div>
+                <div class="step-content">
+                    <p>新しいプラグインを検出するため、OneCommeを完全に閉じて再起動してください。単純な更新では機能しません—完全な再起動が必要です。</p>
+                    
+                    <ol>
+                        <li>OneCommeを閉じる（ファイル → 終了 または Alt+F4）</li>
+                        <li>OneCommeを再起動</li>
+                        <li>コンソールでプラグインのロードメッセージを確認</li>
+                    </ol>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>スクリーンショット：プラグインが正常にロードされたことを示すOneCommeコンソール</p>
+                        <p class="caption">手動キャプチャ必要：console_plugin_loaded.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">プラグインを有効化</div>
+                </div>
+                <div class="step-content">
+                    <p>OneCommeのプラグイン設定に移動し、「OneComme OSC Router」を有効化します：</p>
+                    
+                    <ol>
+                        <li>OneComme設定を開く</li>
+                        <li><strong>プラグイン</strong>タブに移動</li>
+                        <li>リストから<strong>OneComme OSC Router</strong>を見つける</li>
+                        <li>有効化チェックボックスをチェック</li>
+                        <li>適用/保存をクリック</li>
+                    </ol>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <p>スクリーンショット：OSC Routerが有効化されたOneCommeプラグイン設定</p>
+                        <p class="caption">スクリーンショット追加：enable_plugin.png</p>
+                    </div>
+
+                    <div class="info-box success">
+                        <strong>✅ 成功！</strong>
+                        すべてが正しく設定されていれば、プラグインが起動したことがOneCommeコンソールに表示されます。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 初回起動セクション -->
+        <section id="first-launch">
+            <h2>🚀 初回起動</h2>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Webインターフェースにアクセス</div>
+                </div>
+                <div class="step-content">
+                    <p>プラグインが有効化されたら、Webブラウザを開いて次のURLにアクセスします：</p>
+                    
+                    <pre><code>http://localhost:19101</code></pre>
+
+                    <p>OneComme OSC Routerのコントロールパネルが表示されます。</p>
+
+                    <img src="images/web_interface_overview.png" alt="初回ロード時のWebインターフェースの概要タブ" class="screenshot">
+
+                    <div class="info-box note">
+                        <strong>💡 ブックマークしよう！</strong>
+                        簡単にアクセスできるよう、<code>http://localhost:19101</code>をブックマークに保存してください。プラグインが有効化されている間、OneComme実行中はいつでもアクセスできます。
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">デフォルト設定を確認</div>
+                </div>
+                <div class="step-content">
+                    <p>プラグインには、VRChat向けに最適化された適切なデフォルト設定があります：</p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>設定</th>
+                                <th>デフォルト値</th>
+                                <th>説明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>OSCホスト</td>
+                                <td><code>127.0.0.1</code></td>
+                                <td>ローカルマシン（同じコンピュータ）</td>
+                            </tr>
+                            <tr>
+                                <td>OSCポート</td>
+                                <td><code>19100</code></td>
+                                <td>標準VRChat OSCポート</td>
+                            </tr>
+                            <tr>
+                                <td>Web UIポート</td>
+                                <td><code>19101</code></td>
+                                <td>コントロールパネルアクセス</td>
+                            </tr>
+                            <tr>
+                                <td>メッセージ形式</td>
+                                <td>バイナリ</td>
+                                <td>標準OSC形式</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p><strong>設定</strong>タブをクリックして、必要に応じてこれらを確認・変更してください。</p>
+
+                    <img src="images/settings_default.png" alt="デフォルト設定を示す設定タブ" class="screenshot">
+                </div>
+            </div>
+        </section>
+
+        <!-- Webインターフェースセクション -->
+        <section id="web-interface">
+            <h2>🖥️ Webインターフェースツアー</h2>
+            <p>Webインターフェースには4つのメインタブがあります。それぞれを見ていきましょう：</p>
+
+            <h3>📊 概要タブ</h3>
+            <p>リアルタイム監視のためのダッシュボード：</p>
+            <ul>
+                <li><strong>メッセージ統計：</strong>処理された総メッセージ数、プラットフォーム別メッセージ数</li>
+                <li><strong>接続ステータス：</strong>OneCommeとOSC接続インジケータ</li>
+                <li><strong>システムヘルス：</strong>プラグインの稼働時間とパフォーマンスメトリクス</li>
+                <li><strong>クイックアクション：</strong>共通設定への高速アクセス</li>
+            </ul>
+
+            <div class="screenshot-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <p>スクリーンショット：統計と接続ステータスが表示された概要タブ</p>
+                <p class="caption">スクリーンショット追加：overview_tab_detailed.png</p>
+            </div>
+
+            <h3>📜 ルールタブ</h3>
+            <p>メッセージルーティングルールの作成と管理：</p>
+            <ul>
+                <li><strong>ルールリスト：</strong>すべてのカスタムルーティングルール</li>
+                <li><strong>有効/無効切替：</strong>クイックルール有効化</li>
+                <li><strong>編集ボタン：</strong>既存のルールを変更</li>
+                <li><strong>削除ボタン：</strong>不要なルールを削除</li>
+                <li><strong>新規ルール追加：</strong>カスタムルーティングロジックを作成</li>
+                <li><strong>ルールテスト：</strong>サンプルメッセージでルールを検証</li>
+            </ul>
+
+            <img src="images/rules_tab.png" alt="ルールリストと管理オプションが表示されたルールタブ" class="screenshot">
+
+            <h3>📋 ログタブ</h3>
+            <p>メッセージフローをリアルタイムで監視：</p>
+            <ul>
+                <li><strong>ライブフィード：</strong>受信および送信メッセージ</li>
+                <li><strong>フィルタオプション：</strong>プラットフォーム、メッセージタイプでフィルタ</li>
+                <li><strong>検索：</strong>特定のメッセージやユーザーを検索</li>
+                <li><strong>エクスポート：</strong>デバッグ用にログをダウンロード</li>
+                <li><strong>クリア：</strong>ログ履歴をリセット</li>
+            </ul>
+
+            <img src="images/logs_tab.png" alt="メッセージ履歴とフィルタリングが表示されたログタブ" class="screenshot">
+
+            <h3>⚙️ 設定タブ</h3>
+            <p>プラグインの動作を設定：</p>
+            <ul>
+                <li><strong>OSC出力：</strong>ホスト、ポート、メッセージ形式</li>
+                <li><strong>絵文字削除：</strong>メッセージから絵文字を除去</li>
+                <li><strong>デフォルトエンドポイント：</strong>プラットフォーム固有のエンドポイントを有効/無効化</li>
+                <li><strong>詳細：</strong>接続設定、パフォーマンスチューニング</li>
+                <li><strong>バックアップ/復元：</strong>設定のエクスポートとインポート</li>
+            </ul>
+
+            <img src="images/settings_tab_full.png" alt="すべての設定オプションが表示された設定タブ" class="screenshot">
+        </section>
+
+        <!-- ルール作成セクション -->
+        <section id="creating-rules">
+            <h2>🎨 カスタムルーティングルールの作成</h2>
+            <p>ルーティングルールを使用すると、特定のタイプのメッセージを異なるOSCエンドポイントに送信できます。ステップバイステップでルールを作成しましょう。</p>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">7</div>
+                    <div class="step-title">ルールビルダーを開く</div>
+                </div>
+                <div class="step-content">
+                    <ol>
+                        <li><strong>ルール</strong>タブをクリック</li>
+                        <li><strong>「新規ルール追加」</strong>ボタンをクリック</li>
+                        <li>ルールビルダーモーダルが表示されます</li>
+                    </ol>
+
+                    <img src="images/rule_builder_empty.png" alt="ルールビルダーモーダル（空のフォーム）" class="screenshot">
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">8</div>
+                    <div class="step-title">基本ルール情報を設定</div>
+                </div>
+                <div class="step-content">
+                    <p>基本情報を入力します：</p>
+                    
+                    <ul>
+                        <li><strong>ルール名：</strong>説明的な名前（例：「高額スーパーチャット」）</li>
+                        <li><strong>説明：</strong>このルールが何をするか（オプションですが推奨）</li>
+                        <li><strong>エンドポイント：</strong>メッセージが送信されるOSCアドレス（例：<code>/chat/superchats</code>）</li>
+                        <li><strong>有効：</strong>すぐに有効化する場合はチェック</li>
+                    </ul>
+
+                    <img src="images/rule_builder_basic_info.png" alt="基本情報が入力されたルールビルダー" class="screenshot">
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">9</div>
+                    <div class="step-title">条件を追加</div>
+                </div>
+                <div class="step-content">
+                    <p>条件は、このルールに一致するメッセージを決定します。例：20ドル以上のスーパーチャットをルーティング</p>
+                    
+                    <ol>
+                        <li><strong>「条件グループを追加」</strong>をクリック</li>
+                        <li><strong>プラットフォーム：</strong>YouTubeを選択</li>
+                        <li><strong>メッセージタイプ：</strong>superchatを選択</li>
+                        <li><strong>「条件を追加」</strong>をクリック</li>
+                        <li>設定：
+                            <ul>
+                                <li>フィールド：<code>amount</code></li>
+                                <li>演算子：<code>greater_than</code></li>
+                                <li>値：<code>20</code></li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <img src="images/rule_builder_conditions.png" alt="条件が設定されたルールビルダー" class="screenshot">
+
+                    <div class="info-box note">
+                        <strong>💡 利用可能な演算子：</strong>
+                        <ul>
+                            <li><code>equals</code> - 完全一致</li>
+                            <li><code>not_equals</code> - 不一致</li>
+                            <li><code>contains</code> - 文字列を含む</li>
+                            <li><code>not_contains</code> - 文字列を含まない</li>
+                            <li><code>greater_than</code> / <code>less_than</code> - 数値比較</li>
+                            <li><code>regex</code> - 正規表現マッチ</li>
+                            <li><code>exists</code> / <code>not_exists</code> - フィールドの存在</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">10</div>
+                    <div class="step-title">フィールドマッピングを設定（オプション）</div>
+                </div>
+                <div class="step-content">
+                    <p>フィールドマッピングを使用すると、OSCメッセージに含めるデータフィールドをカスタマイズできます。指定しない場合、すべてのフィールドが送信されます。</p>
+                    
+                    <p>マッピング例：</p>
+                    <ul>
+                        <li><code>username</code> → <code>name</code></li>
+                        <li><code>message_text</code> → <code>comment</code></li>
+                        <li><code>donation_amount</code> → <code>amount</code></li>
+                        <li><code>currency_code</code> → <code>currency</code></li>
+                    </ul>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <p>スクリーンショット：フィールドマッピングが設定されたルールビルダー</p>
+                        <p class="caption">スクリーンショット追加：rule_builder_mappings.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">11</div>
+                    <div class="step-title">ルールをテスト</div>
+                </div>
+                <div class="step-content">
+                    <p>保存する前に、サンプルデータでルールをテストします：</p>
+                    
+                    <ol>
+                        <li><strong>「ルールをテスト」</strong>ボタンをクリック</li>
+                        <li>テストパネルにサンプルメッセージが表示されます</li>
+                        <li>ルールに一致するメッセージを確認</li>
+                        <li>必要に応じて条件を調整</li>
+                    </ol>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>スクリーンショット：一致したメッセージを示すルールテスト結果</p>
+                        <p class="caption">スクリーンショット追加：rule_test_results.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">12</div>
+                    <div class="step-title">保存と有効化</div>
+                </div>
+                <div class="step-content">
+                    <p>ルールに満足したら：</p>
+                    
+                    <ol>
+                        <li><strong>「ルールを保存」</strong>をクリック</li>
+                        <li>ルールがルールリストに表示されます</li>
+                        <li>スイッチを切り替えていつでも有効/無効化</li>
+                        <li>ルールは自動的にディスクに保存されます</li>
+                    </ol>
+
+                    <div class="info-box success">
+                        <strong>✅ ルール有効！</strong>
+                        ルールはメッセージを処理しています。ログタブで動作を確認してください。
+                    </div>
+
+                    <div class="screenshot-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p>スクリーンショット：新しく作成されたルールを示すルールリスト</p>
+                        <p class="caption">スクリーンショット追加：rule_saved_in_list.png</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3>ルール例</h3>
+            <p>開始に役立つ便利なルール例：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ルール名</th>
+                        <th>目的</th>
+                        <th>条件</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>VIPメンバーのみ</td>
+                        <td>チャンネルメンバーからのメッセージをルーティング</td>
+                        <td><code>is_member equals true</code></td>
+                    </tr>
+                    <tr>
+                        <td>Bilibili高額ギフト</td>
+                        <td>価値の高いBilibiliギフトをハイライト</td>
+                        <td><code>coins greater_than 100</code></td>
+                    </tr>
+                    <tr>
+                        <td>キーワードフィルタ</td>
+                        <td>特定のキーワードをキャッチ</td>
+                        <td><code>comment contains \"VRChat\"</code></td>
+                    </tr>
+                    <tr>
+                        <td>スパムブロック</td>
+                        <td>スパムメッセージをフィルタ</td>
+                        <td><code>comment regex \"\\b(spam|bot)\\b\"</code>（NOT論理）</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- VRChatセットアップセクション -->
+        <section id="vrchat-setup">
+            <h2>🎮 VRChat統合</h2>
+            <p>プラグインはすぐにVRChat向けに最適化されています。ワールド内でチャットメッセージを表示する方法：</p>
+
+            <div class="info-box note">
+                <strong>📌 前提条件：</strong>
+                <ul>
+                    <li>VRChatがインストールされ実行中</li>
+                    <li>VRChatのOSCシステムに関する基本的な理解</li>
+                    <li>OSCメッセージを受信できるアバターまたはワールド</li>
+                </ul>
+            </div>
+
+            <h3>ステップ1：VRChat OSCを有効化</h3>
+            <p>VRChatのアクションメニューで：</p>
+            <ol>
+                <li><strong>Options</strong>を開く</li>
+                <li><strong>OSC</strong>タブに移動</li>
+                <li><strong>OSC</strong>を有効化</li>
+                <li>問題がある場合は<strong>Reset Config</strong>をクリック</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                </svg>
+                <p>スクリーンショット：VRChat OSC設定メニュー</p>
+                <p class="caption">スクリーンショット追加：vrchat_osc_settings.png</p>
+            </div>
+
+            <h3>ステップ2：接続を確認</h3>
+            <p>プラグインはデフォルトでポート19100（VRChatの標準ポート）にメッセージを送信します。確認方法：</p>
+            
+            <ol>
+                <li>OneCommeで配信を開始</li>
+                <li>誰かにチャットメッセージを送ってもらう</li>
+                <li>プラグインの<strong>ログタブ</strong>で送信メッセージを確認</li>
+                <li>ログで<code>/onecomme/youtube/comment</code>（または類似）を探す</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                <p>スクリーンショット：VRChatに送信されるメッセージを示すログ</p>
+                <p class="caption">スクリーンショット追加：logs_vrchat_messages.png</p>
+            </div>
+
+            <h3>ステップ3：アバター/ワールドパラメータを設定</h3>
+            <p>VRChatでメッセージを表示するには、OSCアドレスをリッスンするアバターパラメータまたはワールドスクリプトが必要です。</p>
+
+            <p><strong>デフォルトOSCエンドポイント：</strong></p>
+            <ul>
+                <li><code>/onecomme/youtube/comment</code> - YouTubeコメント</li>
+                <li><code>/onecomme/youtube/superchat</code> - スーパーチャット</li>
+                <li><code>/onecomme/bilibili/comment</code> - Bilibiliコメント</li>
+                <li><code>/onecomme/bilibili/gift</code> - Bilibiliギフト</li>
+                <li><code>/onecomme/niconico/comment</code> - ニコニココメント</li>
+            </ul>
+
+            <div class="info-box note">
+                <strong>💡 アバタークリエイター向け：</strong>
+                UdonまたはアバターパラメータでこれらのOSCアドレスをリッスンしてください。メッセージデータはOSCペイロード内でJSONとして送信されます。
+            </div>
+
+            <h3>VRChat接続のトラブルシューティング</h3>
+            <p>メッセージがVRChatに表示されない場合：</p>
+            <ul>
+                <li>設定でVRChat OSCが有効になっていることを確認</li>
+                <li>ファイアウォールがUDPポート19100をブロックしていないか確認</li>
+                <li>OneCommeがチャットメッセージを受信していることを確認</li>
+                <li>プラグインログでメッセージが送信されていることを確認</li>
+                <li>設定で<strong>バイナリ vs 文字列</strong>形式の切替を試す</li>
+                <li>OSC変更後にVRChatを再起動</li>
+            </ul>
+        </section>
+
+        <!-- トラブルシューティングセクション -->
+        <section id="troubleshooting">
+            <h2>🔧 トラブルシューティング</h2>
+
+            <h3>プラグインが読み込まれない</h3>
+            <div class="info-box warning">
+                <strong>症状：</strong>プラグインがOneCommeのプラグインリストに表示されない
+                <p><strong>解決策：</strong></p>
+                <ul>
+                    <li>フォルダ名が正確に<code>onecommeOSCrouter</code>（大文字小文字を区別）であることを確認</li>
+                    <li>プラグインフォルダのルートに<code>plugin.js</code>が存在することを確認</li>
+                    <li><code>node_modules</code>フォルダが存在することを確認（リリースに含まれているはず）</li>
+                    <li>OneCommeの完全な再起動を試す（更新ではなく）</li>
+                    <li>OneCommeコンソールでエラーメッセージを確認</li>
+                </ul>
+            </div>
+
+            <h3>Webインターフェースが読み込まれない</h3>
+            <div class="info-box warning">
+                <strong>症状：</strong><code>http://localhost:19101</code>で「このページに到達できません」と表示される
+                <p><strong>解決策：</strong></p>
+                <ul>
+                    <li>OneComme設定でプラグインが有効になっていることを確認</li>
+                    <li>他のアプリケーションがポート19101を使用していないか確認</li>
+                    <li>別のブラウザからアクセスを試す</li>
+                    <li>OneCommeコンソールでWebサーバー起動メッセージを確認</li>
+                    <li>Windowsファイアウォール設定でブロックされたポートを確認</li>
+                </ul>
+            </div>
+
+            <h3>メッセージが対象アプリケーションに到達しない</h3>
+            <div class="info-box warning">
+                <strong>症状：</strong>ログにメッセージ送信が表示されるが、対象アプリが受信しない
+                <p><strong>解決策：</strong></p>
+                <ul>
+                    <li>対象アプリケーションが正しいポートでリッスンしていることを確認</li>
+                    <li>設定のOSCホスト/ポートが対象アプリと一致することを確認</li>
+                    <li>バイナリと文字列のメッセージ形式を切り替えてみる</li>
+                    <li>ファイアウォールがUDPトラフィックをブロックしていないか確認</li>
+                    <li><code>npm run monitor</code>を使用してOSCメッセージが送信されていることを確認</li>
+                    <li>OSC設定変更後に対象アプリケーションを再起動</li>
+                </ul>
+            </div>
+
+            <h3>ルールがトリガーされない</h3>
+            <div class="info-box warning">
+                <strong>症状：</strong>ルールを作成したがメッセージがルーティングされない
+                <p><strong>解決策：</strong></p>
+                <ul>
+                    <li>ルールが有効になっていることを確認（トグルスイッチがオン）</li>
+                    <li>ルールテスト機能を使用して条件を検証</li>
+                    <li>条件ロジック（AND vs OR）を確認</li>
+                    <li>フィールド名が受信メッセージ構造と一致することを確認</li>
+                    <li>テストのために条件を簡素化（1つの条件以外すべて削除）</li>
+                    <li>ログタブでどのルールが一致しているか確認</li>
+                </ul>
+            </div>
+
+            <h3>ヘルプを得る</h3>
+            <p>まだ問題が発生している場合：</p>
+            <ul>
+                <li>類似の問題について<a href="https://github.com/noodledostuff/onecommeOSCrouter/issues" target="_blank">GitHub Issues</a>ページを確認</li>
+                <li>READMEの<a href="https://github.com/noodledostuff/onecommeOSCrouter/blob/main/README.md#-frequently-asked-questions-qa" target="_blank">Q&Aセクション</a>を確認</li>
+                <li>テストスイートを実行：<code>npm test</code>（プラグインディレクトリから）</li>
+                <li>以下の情報を含めて新しいIssueを開く：
+                    <ul>
+                        <li>OneCommeバージョン</li>
+                        <li>プラグインバージョン</li>
+                        <li>オペレーティングシステム</li>
+                        <li>コンソールエラーメッセージ</li>
+                        <li>再現手順</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+
+        <!-- 高度な使用法セクション -->
+        <section id="advanced">
+            <h2>🚀 高度な使用法</h2>
+
+            <h3>OSCメッセージのテスト</h3>
+            <p>プラグインには<code>tests/</code>ディレクトリにテストユーティリティが含まれています：</p>
+
+            <pre><code># すべてのテストを実行
+npm test
+
+# 設定の永続性をテスト
+npm run test:config
+
+# OSC信頼性をテスト
+npm run test:osc
+
+# メッセージ形式をテスト
+npm run test:formats
+
+# リアルタイムOSCモニター
+npm run monitor</code></pre>
+
+            <h3>設定ファイル</h3>
+            <p>プラグイン設定はローカルに保存されます：</p>
+            <ul>
+                <li><code>config.json</code> - メイン設定（自動作成）</li>
+                <li><code>routing-rules.json</code> - カスタムルール</li>
+                <li><code>config.backup.json</code> - 変更前の自動バックアップ</li>
+            </ul>
+
+            <div class="info-box note">
+                <strong>💡 プロのヒント：</strong>
+                バッチルール作成のために<code>routing-rules.json</code>を直接編集し、Webインターフェースでリロードできます。
+            </div>
+
+            <h3>OSCメッセージ形式</h3>
+            <p>メッセージは次の構造のJSONとして送信されます：</p>
+            
+            <pre><code>{
+  "timestamp": "2024-09-20T08:30:01.123Z",
+  "service": "youtube",
+  "type": "superchat",
+  "user": {
+    "id": "UC1234567890",
+    "name": "StreamerFan123",
+    "display_name": "StreamerFan123"
+  },
+  "message": {
+    "content": "素晴らしい配信！",
+    "id": "msg_12345"
+  },
+  "platform_data": {
+    "amount": "5.00",
+    "currency": "USD",
+    "is_member": true
+  },
+  "processing": {
+    "rule_matched": "High Value Donations",
+    "endpoint": "/alerts/bigdonation"
+  }
+}</code></pre>
+
+            <h3>REST API</h3>
+            <p>プラグインは<code>http://localhost:19101/api/*</code>で完全なREST APIを公開しています：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>エンドポイント</th>
+                        <th>メソッド</th>
+                        <th>説明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/api/rules</code></td>
+                        <td>GET</td>
+                        <td>すべてのルールをリスト</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/rules</code></td>
+                        <td>POST</td>
+                        <td>新しいルールを作成</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/rules/:id</code></td>
+                        <td>PUT</td>
+                        <td>ルールを更新</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/rules/:id</code></td>
+                        <td>DELETE</td>
+                        <td>ルールを削除</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/config/full</code></td>
+                        <td>GET</td>
+                        <td>設定を取得</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/logs</code></td>
+                        <td>GET</td>
+                        <td>メッセージログを取得</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/status</code></td>
+                        <td>GET</td>
+                        <td>システムステータス</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>パフォーマンスのヒント</h3>
+            <ul>
+                <li>アクティブなルールを必要なものだけに制限</li>
+                <li>処理を減らすために特定の条件を使用</li>
+                <li>必要ない場合は絵文字削除を無効化（わずかなパフォーマンス向上）</li>
+                <li>ログ保持を適切に保つ（デフォルト：100メッセージ）</li>
+                <li>概要タブでメモリ使用量を監視</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p><strong>OneComme OSC Router v0.8.0</strong></p>
+        <p>作成者：<a href="https://github.com/noodledostuff" target="_blank">noodledostuff</a> | MITライセンス</p>
+        <p><a href="https://github.com/noodledostuff/onecommeOSCrouter" target="_blank">GitHub</a> | 
+           <a href="https://github.com/noodledostuff/onecommeOSCrouter/issues" target="_blank">問題を報告</a> | 
+           <a href="https://github.com/noodledostuff/onecommeOSCrouter/blob/main/README.md" target="_blank">ドキュメント</a></p>
+    </footer>
+</body>
+</html>
