@@ -4,7 +4,7 @@
 
 **Transform your OneComme chat messages into powerful OSC data streams for VRChat, OBS, TouchDesigner, and other creative applications**
 
-The OneComme OSC Router is a comprehensive plugin that bridges the gap between OneComme's multi-platform chat capture and OSC-enabled applications. It intelligently processes chat messages from YouTube, Bilibili, and Niconico, transforming them into structured OSC messages with sophisticated routing capabilities.
+The OneComme OSC Router is a comprehensive plugin that bridges the gap between OneComme's multi-platform chat capture and OSC-enabled applications. It intelligently processes chat messages from YouTube, Bilibili, Niconico, and Twitch, transforming them into structured OSC messages with sophisticated routing capabilities.
 
 > ⚠️ **Important**: This is a plugin specifically designed for OneComme. It cannot be used as a standalone application and requires OneComme to be installed and running.
 
@@ -27,6 +27,7 @@ The OSC Router acts as an intelligent middleware layer that:
 | **YouTube** | Comments, Super Chats, Memberships | Amount detection, currency handling, membership tiers |
 | **Bilibili** | Comments, Gifts, Guard status | Coin amounts, user levels, VIP detection |
 | **Niconico** | Comments, Premium users | Premium user detection, timestamp handling |
+| **Twitch** | Comments, Subscriptions, Bits, Raids | Subscriber status, bits/cheering, raid detection, badges |
 
 ---
 
@@ -102,6 +103,10 @@ When first loaded, the plugin creates a default configuration optimized for comm
 - `/onecomme/bilibili/comment` → Bilibili comments
 - `/onecomme/bilibili/gift` → Bilibili gifts
 - `/onecomme/niconico/comment` → Niconico comments
+- `/onecomme/twitch/comment` → Twitch chat messages
+- `/onecomme/twitch/subscription` → Twitch subscriptions
+- `/onecomme/twitch/bits` → Twitch bits/cheering
+- `/onecomme/twitch/raid` → Twitch raids
 
 ### Web Interface Overview
 
@@ -323,6 +328,22 @@ All OSC messages sent by the plugin contain structured JSON data:
 }
 ```
 
+#### Twitch Messages
+```json
+{
+  "bits": 1000,
+  "bitsInDollars": 14.00,
+  "isSubscriber": true,
+  "subscriptionTier": 1000,
+  "subscriptionMonths": 12,
+  "isVip": false,
+  "isModerator": false,
+  "badges": ["subscriber/12"],
+  "viewerCount": 150,
+  "raiderName": "friendly_channel"
+}
+```
+
 ---
 
 ## 🔧 Advanced Configuration
@@ -417,6 +438,13 @@ Test both binary and string OSC message formats:
 node tests/test-osc-message-formats.js
 ```
 **Tests**: Configuration system, binary/string message creation, Unicode handling, emoji removal, format comparison
+
+#### Twitch Integration Test
+Test Twitch platform handlers:
+```bash
+node tests/test-twitch-integration.js
+```
+**Tests**: Twitch comment, subscription, bits, and raid message handling, JSON serialization, helper methods
 
 ### Troubleshooting Common Issues
 
@@ -548,7 +576,8 @@ onecommeOSCrouter/
 ├── impl/                     # Platform-specific handlers
 │   ├── youtube/             # YouTube message processing
 │   ├── bilibili/            # Bilibili message processing
-│   └── niconico.js          # Niconico message processing
+│   ├── niconico.js          # Niconico message processing
+│   └── twitch/              # Twitch message processing
 ├── tests/                    # Test suite
 │   ├── test-config-persistence.js
 │   ├── test-osc-reliability.js

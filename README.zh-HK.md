@@ -4,7 +4,7 @@
 
 **將你的 OneComme 聊天訊息轉換為強大的 OSC 數據流,適用於 VRChat、OBS、TouchDesigner 和其他創意應用程式**
 
-OneComme OSC Router 是一個全面的外掛程式,在 OneComme 的多平台聊天捕獲和支援 OSC 的應用程式之間架起橋樑。它智能地處理來自 YouTube、Bilibili 和 Niconico 的聊天訊息,將其轉換為具有複雜路由功能的結構化 OSC 訊息。
+OneComme OSC Router 是一個全面的外掛程式,在 OneComme 的多平台聊天捕獲和支援 OSC 的應用程式之間架起橋樑。它智能地處理來自 YouTube、Bilibili、Niconico 和 Twitch 的聊天訊息,將其轉換為具有複雜路由功能的結構化 OSC 訊息。
 
 > ⚠️ **重要**: 這是專為 OneComme 設計的外掛程式。它不能作為獨立應用程式使用,需要安裝並運行 OneComme。
 
@@ -27,6 +27,7 @@ OSC Router 作為智能中間件層運作,具有以下功能:
 | **YouTube** | 留言、Super Chat、會員資格 | 金額檢測、貨幣處理、會員等級 |
 | **Bilibili** | 留言、禮物、艦長狀態 | 金幣數量、用戶等級、VIP 檢測 |
 | **Niconico** | 留言、高級用戶 | 高級用戶檢測、時間戳處理 |
+| **Twitch** | 留言、訂閱、Bits、Raid | 訂閱者狀態、Bits/打賞、Raid 檢測、徽章 |
 
 ---
 
@@ -102,6 +103,10 @@ OSC Router 作為智能中間件層運作,具有以下功能:
 - `/onecomme/bilibili/comment` → Bilibili 留言
 - `/onecomme/bilibili/gift` → Bilibili 禮物
 - `/onecomme/niconico/comment` → Niconico 留言
+- `/onecomme/twitch/comment` → Twitch 聊天訊息
+- `/onecomme/twitch/subscription` → Twitch 訂閱
+- `/onecomme/twitch/bits` → Twitch Bits/打賞
+- `/onecomme/twitch/raid` → Twitch Raid
 
 ### 網頁介面概述
 
@@ -259,13 +264,18 @@ node tests/osc-monitor.js
 node tests/test-osc-message-formats.js
 ```
 
+#### Twitch 整合測試
+```bash
+node tests/test-twitch-integration.js
+```
+
 ---
 
 ## ❓ 常見問題 (Q&A)
 
 ### Q1: 為什麼要實現為 OneComme 外掛程式而不是獨立應用程式?
 
-**A**: 當 OneComme 已經解決了 YouTube、Bilibili 和 Niconico 的複雜多平台身份驗證、訊息獲取、速率限制和 API 處理的挑戰時,為什麼要重新發明輪子? 透過構建為外掛程式,我們可以專注於我們最擅長的事情——智能訊息路由和 OSC 整合——同時利用 OneComme 強大且經過實戰檢驗的聊天捕獲基礎架構。這種方法意味著:
+**A**: 當 OneComme 已經解決了 YouTube、Bilibili、Niconico 和 Twitch 的複雜多平台身份驗證、訊息獲取、速率限制和 API 處理的挑戰時,為什麼要重新發明輪子?
 - **無重複身份驗證流程**: OneComme 處理所有平台登入和 API 金鑰
 - **自動更新**: 當平台更改其 API 時,OneComme 只需更新一次即可適用於所有外掛程式
 - **較低的維護成本**: 我們不需要為每個平台維護單獨的 API 客戶端

@@ -4,7 +4,7 @@
 
 **OneCommeのチャットメッセージを、VRChat、OBS、TouchDesigner、その他のクリエイティブアプリケーション向けの強力なOSCデータストリームに変換**
 
-OneComme OSC Routerは、OneCommeのマルチプラットフォームチャットキャプチャとOSC対応アプリケーションの橋渡しをする総合的なプラグインです。YouTube、Bilibili、ニコニコからのチャットメッセージをインテリジェントに処理し、高度なルーティング機能を備えた構造化OSCメッセージに変換します。
+OneComme OSC Routerは、OneCommeのマルチプラットフォームチャットキャプチャとOSC対応アプリケーションの橋渡しをする総合的なプラグインです。YouTube、Bilibili、ニコニコ、Twitchからのチャットメッセージをインテリジェントに処理し、高度なルーティング機能を備えた構造化OSCメッセージに変換します。
 
 > ⚠️ **重要**: これはOneComme専用に設計されたプラグインです。スタンドアロンアプリケーションとしては使用できず、OneCommeのインストールと実行が必要です。
 
@@ -27,6 +27,7 @@ OSC Routerは、以下の機能を持つインテリジェントなミドルウ�
 | **YouTube** | コメント、スーパーチャット、メンバーシップ | 金額検出、通貨処理、メンバーシップ階層 |
 | **Bilibili** | コメント、ギフト、ガードステータス | コイン金額、ユーザーレベル、VIP検出 |
 | **ニコニコ** | コメント、プレミアムユーザー | プレミアムユーザー検出、タイムスタンプ処理 |
+| **Twitch** | コメント、サブスク、ビッツ、レイド | サブスクライバーステータス、ビッツ/チアー、レイド検出、バッジ |
 
 ---
 
@@ -102,6 +103,10 @@ OSC Routerは、以下の機能を持つインテリジェントなミドルウ�
 - `/onecomme/bilibili/comment` → Bilibiliコメント
 - `/onecomme/bilibili/gift` → Bilibiliギフト
 - `/onecomme/niconico/comment` → ニコニココメント
+- `/onecomme/twitch/comment` → Twitchチャットメッセージ
+- `/onecomme/twitch/subscription` → Twitchサブスクリプション
+- `/onecomme/twitch/bits` → Twitchビッツ/チアー
+- `/onecomme/twitch/raid` → Twitchレイド
 
 ### ウェブインターフェース概要
 
@@ -259,13 +264,18 @@ node tests/osc-monitor.js
 node tests/test-osc-message-formats.js
 ```
 
+#### Twitch統合テスト
+```bash
+node tests/test-twitch-integration.js
+```
+
 ---
 
 ## ❓ よくある質問（Q&A）
 
-### Q1: スタンドアロンアプリケーションではなく、OneCommeプラグインとして実装したのはなぜですか？
+### Q1: スタンドアロンアプリケーションではなく、OneCommeプラグインとして実装したのはなぜですか?
 
-**A**: OneCommeがYouTube、Bilibili、ニコニコの複雑なマルチプラットフォーム認証、メッセージ取得、レート制限、API処理をすでに解決しているのに、なぜ車輪の再発明をするのでしょうか？プラグインとして構築することで、インテリジェントなメッセージルーティングとOSC統合という私たちが最も得意とすることに集中でき、OneCommeの堅牢で実績のあるチャットキャプチャインフラストラクチャを活用できます。このアプローチには以下のメリットがあります：
+**A**: OneCommeがYouTube、Bilibili、ニコニコ、Twitchの複雑なマルチプラットフォーム認証、メッセージ取得、レート制限、API処理をすでに解決しているのに、なぜ車輪の再発明をするのでしょうか?
 - **重複する認証フローなし**: OneCommeがすべてのプラットフォームログインとAPIキーを処理
 - **自動更新**: プラットフォームがAPIを変更しても、OneCommeが一度更新すればすべてのプラグインに適用
 - **メンテナンスの軽減**: 各プラットフォーム用の個別APIクライアントを維持する必要なし
