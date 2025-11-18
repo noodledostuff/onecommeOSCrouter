@@ -4,254 +4,218 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-**OneComme OSC Router Plugin** - A middleware plugin for OneComme that transforms multi-platform chat messages (YouTube, Bilibili, Niconico) into structured OSC messages with sophisticated routing capabilities. The plugin runs within OneComme's environment and provides a web-based configuration interface.
+OneComme OSC Router is a sophisticated Node.js plugin designed to bridge OneComme (a multi-platform chat capture application) with OSC-enabled applications like VRChat, OBS, and TouchDesigner. The plugin captures chat messages from YouTube, Bilibili, Niconico, and Twitch, processes them through customizable routing rules, and forwards them as structured OSC messages.
 
-**Key Architecture**:
-- **Node.js plugin** (`plugin.js`) that integrates with OneComme's event system
-- **Platform-specific handlers** (`impl/`) convert platform messages to unified format
-- **Rule engine** evaluates conditional routing logic (AND/OR/NOT operators)
-- **OSC client** sends UDP messages (binary or UTF-8 string format)
-- **Express web server** provides REST API and UI at `localhost:19101`
-- **Configuration persistence** with auto-backup and migration support
+**Important Context**: This is a plugin specifically for OneComme - it cannot run standalone and requires OneComme to be installed and running.
 
-## Common Development Commands
+## Development Commands
 
-### Testing
+### Core Development
 ```bash
-# Run all tests
-npm test
+# Start the plugin in development mode
+npm run dev
+# or
+node plugin.js
 
-# Individual test suites
-npm run test:config          # Configuration persistence tests
-npm run test:osc             # OSC reliability tests
-npm run test:formats         # OSC message format tests
-
-# Real-time OSC message monitoring
-npm run monitor
-```
-
-### Development
-```bash
-# Start plugin (normally launched by OneComme)
+# Run the plugin normally
 npm start
 
-# Development mode (for standalone testing)
-npm run dev
+# Run basic tests
+npm test
 ```
 
-**Note**: End users do not need to run `npm install` - dependencies are bundled with the plugin. Only developers working on the source need to install dependencies.
+### Testing Suite
+```bash
+# Test configuration persistence system
+node tests/test-config-persistence.js
 
-## Architecture Deep Dive
+# Test OSC message reliability and delivery
+node tests/test-osc-reliability.js
 
-### Core Components Flow
+# Monitor OSC messages in real-time (for debugging)
+node tests/osc-monitor.js
 
+# Test Twitch integration handlers
+node tests/test-twitch-integration.js
 ```
-OneComme → MessageConverter → RuleEngine → OSCMessageSender → Target Application
-                ↓                 ↓              ↓
-         Platform Handlers    routing-rules.json   Binary/String Format
-         (impl/youtube,        + ConfigManager      (node-osc)
-          impl/bilibili,
-          impl/niconico)
-```
 
-### Key Classes and Responsibilities
+### Development Server
+The plugin includes a web UI that starts automatically on `http://localhost:19101` when the plugin runs. This provides:
+- Real-time message monitoring
+- Rule configuration interface
+- Configuration management
+- Live debugging tools
 
-**ConfigManager** (`plugin.js:74-407`)
-- Loads/saves `config.json` with deep merge for upgrades
-- Handles config versioning and migration (currently v2.0.0)
-- Auto-creates backups before saving (`config.backup.json`)
-- Provides getters/setters for all config sections (OSC, UI, messageProcessing, ruleEngine, advanced)
+## Architecture
 
-**RuleEngine** (`plugin.js:409-743`)
-- Loads routing rules from `routing-rules.json`
-- Evaluates rules with nested condition groups (AND/OR/NOT logic)
-- Supports operators: `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `regex`, `exists`, `not_exists`
-- Matches by platform (service), messageType (comment/gift/superchat), and custom conditions
-- Field filtering based on rule configuration
+### Core System Components
 
-**OSCMessageSender** (`plugin.js:470-587`)
-- Creates node-osc Client instances
-- Supports two message formats:
-  - **Binary** (default): JSON as binary blob via `Message()` 
-  - **String**: JSON as UTF-8 string argument
-- Handles emoji removal (HTML `<img>` tags + Unicode emoji sequences)
-- Manages connection health and auto-reconnect
+**Plugin Entry Point** (`plugin.js`)
+- Main orchestrator that initializes all subsystems
+- Integrates with OneComme's plugin architecture via exports
+- Manages OSC client connections and message routing
+- Hosts the web UI server on port 19101
 
-**MessageLogger** (`plugin.js:17-71`)
-- Circular buffer storing last N messages (default 100)
-- Tracks incoming (from OneComme) and outgoing (to OSC) messages
-- Provides data for web UI logs tab
+**Message Processing Pipeline**:
+1. **Platform Handlers** (`impl/` directory) - Parse platform-specific message formats
+2. **Rule Engine** - Evaluates routing conditions and determines endpoints  
+3. **OSC Client** - Formats and sends messages to target applications
+4. **Message Logger** - Tracks all incoming/outgoing messages for debugging
 
-**EnhancedMessageConverter** (`plugin.js:745-788`)
-- Routes messages to platform-specific handlers
-- Converts OneComme's raw data to plugin's unified message format
-- Determines if message is gift/superchat vs regular comment
+### Platform-Specific Implementations
 
-### Platform Handler Structure
+The `impl/` directory contains modular handlers for each supported platform:
 
-Each platform in `impl/` follows this pattern:
+- **YouTube** (`impl/youtube/`) - Handles comments and SuperChats with currency/membership detection
+- **Bilibili** (`impl/bilibili/`) - Processes comments and gifts with VIP/Guard status
+- **Niconico** (`impl/niconico.js`) - Manages comments with premium user detection
+- **Twitch** (`impl/twitch/`) - Handles comments, subscriptions, bits/cheering, and raids with comprehensive user status detection
 
-**YouTube** (`impl/youtube/`)
-- `common.js` - Base class with shared logic
-- `comment.js` - Regular YouTube comments
-- `super.js` - Super Chats with amount/currency parsing
-- `index.js` - Exports all YouTube handlers
-
-**Bilibili** (`impl/bilibili/`)
-- `common.js` - Base class with user level, VIP status, guard detection
-- `comment.js` - Regular Bilibili comments
-- `gift.js` - Gift messages with coin amounts
-- `index.js` - Exports all Bilibili handlers
-
-**Niconico** (`impl/niconico.js`)
-- Single file with comment and gift classes
-- Premium user detection
+Each platform implementation exports standardized message classes that the main router can process uniformly.
 
 ### Configuration System
 
-**Main Config** (`config.json`)
-- `oscPort`, `oscHost` - OSC output destination
-- `oscMessageFormat` - 'binary' or 'string'
-- `enableDefaultEndpoints` - Toggle default platform endpoints
-- `messageProcessing.removeEmojis` - Strip emoji from messages
-- `ui.*` - Web interface preferences (last tab, refresh intervals)
-- `advanced.*` - Reconnection, health checks, queue limits
+**Multi-layered Configuration**:
+- `config.json` - Main runtime configuration (auto-generated)
+- `routing-rules.json` - User-defined conditional routing rules
+- `config.backup.json` - Automatic backup created on changes
+- UI preferences stored within config for session continuity
 
-**Routing Rules** (`routing-rules.json`)
-Array of rule objects:
-```javascript
+The `ConfigManager` class handles:
+- Automatic migration between configuration versions
+- Deep merging of default and user settings
+- Persistent storage with backup creation
+- Environment variable override support
+
+### Rule Engine Architecture
+
+**Sophisticated Conditional Logic**:
+- Supports nested AND/OR condition groups
+- Platform-specific field matching (e.g., `amount`, `coins`, `is_member`)
+- Multiple operators: `equals`, `greater_than`, `contains`, `regex`, etc.
+- Field mapping for customized OSC output structure
+- Rule priority and execution order management
+
+**Rule Structure**:
+```json
 {
-  "id": "unique-id",
-  "name": "Rule Name",
-  "enabled": true,
   "conditionGroups": [
     {
-      "source": "youtube|bilibili|niconama",
-      "messageType": "comment|gift|superchat",
-      "conditions": [
-        {"field": "price", "operator": "greater_than", "value": 20}
-      ],
-      "conditionLogic": "AND"
+      "source": "youtube",
+      "messageType": "superchat", 
+      "conditions": [{"field": "price", "operator": "greater_than", "value": 20}]
     }
   ],
-  "groupLogic": "OR",
-  "actions": [
-    {
-      "type": "route_to_endpoint",
-      "endpoint": "/custom/endpoint",
-      "fields": ["name", "comment", "price"]
-    }
-  ],
-  "blockDefault": false
+  "actions": [{"type": "route_to_endpoint", "endpoint": "/alerts/bigdonation"}]
 }
 ```
 
-### Web UI Architecture
+### Web UI System
 
-**Express Server** (`WebUIServer` class)
-- Serves static files from `web-ui/`
-- REST API endpoints under `/api/*`
+**Frontend Architecture** (`web-ui/`):
+- `app.js` - Main UI controller with tab management, real-time updates, and form persistence
+- `index.html` - Tabbed interface with Overview, Rules, Logs, and Settings
+- `source-schemas.js` - Platform field definitions for rule builder
 
-**Key API Endpoints**:
-- `GET/POST/PUT/DELETE /api/rules` - CRUD for routing rules
-- `GET/PUT /api/config/full` - Complete configuration
-- `GET/PUT /api/config/ui` - UI preferences only
-- `GET /api/logs` - Message history from MessageLogger
-- `POST /api/rules/test` - Test rule against sample message
-- `GET /api/status` - System health
+**Key UI Features**:
+- Auto-saving form drafts during rule creation
+- Real-time message log display with filtering
+- Configuration export/import functionality
+- Session persistence (remembers active tab, preferences)
 
-**Frontend** (`web-ui/app.js`)
-- Vanilla JavaScript, no framework
-- Tab-based interface: Overview, Rules, Logs, Settings
-- Rule builder with visual condition editor
-- Real-time log viewer with auto-refresh
+### Message Flow
 
-## Important Development Notes
+1. **OneComme** captures chat messages from platforms
+2. **Platform Handlers** parse raw messages into standardized format
+3. **Rule Engine** evaluates conditions and determines routing
+4. **Message Logger** records processing details
+5. **OSC Client** sends structured JSON to target applications
+6. **Web UI** displays real-time processing status
 
-### OSC Message Format
-- **Binary format** (default): Most OSC applications expect this. Creates `Message()` with JSON as binary argument.
-- **String format**: For text-based receivers or debugging. Sends JSON as plain string argument.
-- Format is configurable via Settings tab or `config.oscMessageFormat`
+### OSC Message Structure
 
-### Emoji Removal
-When enabled (`messageProcessing.removeEmojis`):
-1. Removes HTML `<img>` tags with emoji classes
-2. Strips Unicode emoji using comprehensive regex (emoji sequences, skin tones, ZWJ sequences)
-3. Applied before message routing
-
-### Rule Evaluation Logic
-- Rules with `enabled: false` are skipped
-- Each rule has condition groups evaluated with `groupLogic` (AND/OR)
-- Within each group, conditions evaluated with `conditionLogic` (AND/OR)
-- Platform matching uses `matchesPlatform()` with fallback field detection
-- Multiple rules can match - all matching rules execute their actions
-- `blockDefault: true` prevents default platform endpoints from firing
-
-### Config Persistence
-- **Auto-save**: All config changes immediately persist to disk
-- **Auto-backup**: Creates `config.backup.json` before every save
-- **Migration**: `migrateConfig()` deep-merges old configs with new defaults
-- **Version tracking**: `config.version` enables future upgrade logic
-
-### Testing Strategy
-- `test-config-persistence.js`: Validates save/load/backup/export
-- `test-osc-reliability.js`: Tests message sending, Unicode, error handling
-- `test-osc-message-formats.js`: Validates binary vs string formats, emoji removal
-- `osc-monitor.js`: Live OSC message viewer for debugging
-
-### OneComme Integration
-- Plugin loads via OneComme's plugin system (looks for `plugin.js`)
-- OneComme emits comment events: `{service: "youtube|bilibili|niconama", data: {...}}`
-- Plugin registers listener: `onComment((service, data) => {...})`
-- All dependencies bundled in `node_modules/` (express, node-osc)
-
-## Common Patterns
-
-### Adding a New Platform
-1. Create `impl/newplatform/` directory
-2. Create `common.js` base class extending appropriate parent
-3. Create `comment.js` and `gift.js` (if platform has gifts)
-4. Export classes in `index.js`
-5. Import in main `plugin.js`
-6. Add conversion logic in `EnhancedMessageConverter.convert()`
-
-### Adding a New Condition Operator
-1. Add case in `RuleEngine.evaluateCondition()`
-2. Implement comparison logic
-3. Document in `source-schemas.js` for web UI
-
-### Adding a New Config Setting
-1. Add default value in `ConfigManager.getDefaultConfig()`
-2. Create getter/setter methods in ConfigManager
-3. Add UI controls in `web-ui/index.html`
-4. Wire up API endpoint if needed (or use existing `/api/config/full`)
-
-### Debugging Message Flow
-1. Enable `messageProcessing.enableDebugLogging`
-2. Check OneComme console for incoming message logs
-3. Use `npm run monitor` to verify OSC output
-4. Check web UI Logs tab for processed messages
-5. Test rules with `/api/rules/test` endpoint
-
-## File Structure Reference
-
+All outgoing messages follow a consistent JSON format:
+```json
+{
+  "timestamp": "ISO 8601 timestamp",
+  "service": "youtube|bilibili|niconico", 
+  "type": "comment|superchat|gift",
+  "user": {"id": "", "name": "", "display_name": ""},
+  "message": {"content": "", "id": ""},
+  "platform_data": {"amount": "", "currency": "", "is_member": true},
+  "processing": {"rule_matched": "", "endpoint": "", "processed_at": ""}
+}
 ```
-plugin.js                    # Main entry, all core classes
-config.json                  # Runtime configuration
-routing-rules.json           # User routing rules
-impl/
-  ├── youtube/              # YouTube handlers
-  ├── bilibili/             # Bilibili handlers
-  ├── niconico.js           # Niconico handler
-  ├── comment.js            # Base comment class
-  ├── types.js              # Type definitions
-web-ui/
-  ├── index.html            # Main UI page
-  ├── app.js                # Frontend logic
-  ├── source-schemas.js     # Platform field schemas
-tests/
-  ├── test-config-persistence.js
-  ├── test-osc-reliability.js
-  ├── test-osc-message-formats.js
-  ├── osc-monitor.js
-```
+
+## Key Development Patterns
+
+### Error Handling
+- All async operations use try-catch with fallback behaviors
+- Configuration loading has automatic default fallback
+- OSC sending includes retry logic and connection health checks
+- Web UI shows user-friendly error notifications
+
+### Logging Strategy
+- Console logging with emoji prefixes for easy identification (`📥` incoming, `📤` outgoing)
+- Structured message logging with timestamps and processing details
+- Debug logging controlled via configuration flags
+- Log rotation and retention management
+
+### Plugin Integration
+The plugin exports specific functions that OneComme expects:
+- Message event handlers for each platform
+- Plugin metadata and configuration
+- Lifecycle management (start/stop/reload)
+
+### State Management
+- Configuration changes are immediately persisted
+- UI state (active tabs, form drafts) saved automatically
+- Message logs maintained in memory with configurable limits
+- Rule modifications trigger immediate re-evaluation
+
+## Common Development Tasks
+
+### Adding New Platform Support
+1. Create new handler in `impl/[platform]/`
+2. Implement standardized message parsing classes
+3. Update `plugin.js` to import new handlers
+4. Add platform-specific fields to `source-schemas.js`
+5. Update rule builder UI to support new message types
+
+### Creating Custom Rule Types
+1. Extend condition operators in rule evaluation logic
+2. Add new action types beyond `route_to_endpoint`
+3. Update web UI rule builder with new options
+4. Test with various message scenarios
+
+### Debugging OSC Issues
+1. Use `node tests/osc-monitor.js` to verify message delivery
+2. Check target application's OSC input configuration
+3. Verify network/firewall settings for UDP traffic
+4. Use web UI logs tab for real-time message inspection
+
+## Configuration Notes
+
+### Environment Variables
+- `OSC_PORT` - Override default OSC output port (19100)
+- `WEB_UI_PORT` - Override web interface port (19101)  
+- `DEBUG_LOGGING` - Enable verbose debug output
+
+### Default OSC Endpoints
+- `/onecomme/youtube/comment` - YouTube comments
+- `/onecomme/youtube/superchat` - YouTube Super Chats
+- `/onecomme/bilibili/comment` - Bilibili comments
+- `/onecomme/bilibili/gift` - Bilibili gifts
+- `/onecomme/niconico/comment` - Niconico comments
+- `/onecomme/twitch/comment` - Twitch chat messages
+- `/onecomme/twitch/subscription` - Twitch subscriptions (including gift subs)
+- `/onecomme/twitch/bits` - Twitch bits/cheering events
+- `/onecomme/twitch/raid` - Twitch raids and hosts
+
+### File Structure Impact
+- Plugin must be in OneComme's plugins directory
+- All dependencies bundled (no npm install needed for end users)
+- Configuration files created automatically in plugin root
+- Web UI files served statically from `web-ui/` directory
+
+This plugin demonstrates advanced Node.js patterns including event-driven architecture, sophisticated rule engines, real-time web interfaces, and plugin-based extensibility systems.
